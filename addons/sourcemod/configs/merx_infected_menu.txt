@@ -1,11 +1,5 @@
-"survivor"
+"infected"
 {
-	"gravity"
-	{
-		"command"		"sv_gravity 800"
-		"price"			"1"
-		"commandtype"	"server"
-	}
 	"weapons"
 	{
 		"ak47"
@@ -14,5 +8,11 @@
 			"price"		"2"
 			"type"		"client"
 		}
+	}
+	"gravity"
+	{
+		"command"		"sv_gravity 800"
+		"price"			"1"
+		"commandtype"	"server"
 	}
 }

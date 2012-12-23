@@ -13,30 +13,14 @@ public Plugin:myinfo =
 }
 new Handle:g_hKvInfectedMenu[MAXPLAYERS + 2] = { INVALID_HANDLE, ...};
 new Handle:g_hKvSurvivorMenu[MAXPLAYERS + 2] = { INVALID_HANDLE, ...};
-new Handle:g_hKvCommonMenu[MAXPLAYERS + 2] = { INVALID_HANDLE, ...};
 public OnPluginStart()
 {
 	LoadMenus();
 	RegConsoleCmd("sm_showmenu",Command_ShowMenu);
 }
 public Action:Command_ShowMenu(client, args) {
-	ShowItemMenu(client);
+	ShowMenu(client);
 	return Plugin_Handled;
-}
-ShowItemMenu(client, start = -1, Handle:kv = INVALID_HANDLE) {
-	new Handle:menu = CreateMenu(MenuHandler_Items);
-	if(kv == INVALID_HANDLE)
-	{
-		if(GetClientTeam(client) == 2)
-		{
-			AddMenuItems(client, menu, start, g_hKvInfectedMenu);
-		} else if(GetClientTeam(client) || 3) {
-			AddMenuItems(client, menu, start, g_hKvSurvivorMenu);
-		} 
-		AddMenuItems(client, menu, start, g_hKvCommonMenu);
-	} else {
-		AddMenuItems(client, menu, start, kv);
-	}
 }
 public MenuHandler_Items(Handle:menu, MenuAction:action, client, item) {
 	switch(action)
@@ -47,36 +31,85 @@ public MenuHandler_Items(Handle:menu, MenuAction:action, client, item) {
 		}
 		case MenuAction_Cancel:
 		{
-			
+			if(item == MenuCancel_ExitBack) {
+				ShowPreviousMenu(client);
+			}
+		}
+		case MenuAction_Select:
+		{
+			new String:name[32];
+			GetMenuItem(menu, item, name, sizeof(name));
+			KvJumpToKey(GetClientKv(client), name);
+			ShowMenu(client);
 		}
 	}
 }
-AddMenuItems(client, Handle:menu, start, Handle:kv) {
-	if (start > -1)
+public MenuHandler_Confirm(Handle:menu, MenuAction:action, client, item) {
+	switch(action)
 	{
-		KvJumpToKeySymbol(kv, start);
-		KvGoBack(kv);
-	} else {
-		KvRewind(kv);
+		case MenuAction_End:
+		{
+			CloseHandle(menu);
+		}
+		case MenuAction_Select:
+		{
+			new String:choice[8];
+			if(StrEqual(choice, "yes")) {
+				
+			} else {
+				ShowPreviousMenu(client);
+			}
+		}
 	}
+}
+ShowMenu(client) {
+	new Handle:kv = GetClientKv(client);
+	new String:title[32];
+	KvGetSectionName(kv, title, sizeof(title));
 	if(KvGotoFirstSubKey(kv))
 	{
-		new String:sz[8];
-		new String:name[64];
-		new id;
+		new Handle:menu = CreateMenu(MenuHandler_Items);
+		SetMenuExitBackButton(menu, true);
+		SetMenuTitle(menu, "%s Menu\nPlease choose an item", title);
+		new String:name[32];
+		new String:display[64];
+		KvSavePosition(kv);
 		do
 		{
-			KvGetSectionSymbol(kv, id);
-			IntToString(id, sz, sizeof(sz));
 			KvGetSectionName(kv, name, sizeof(name));
 			if(IsKeyCategory(kv)) 
 			{
-				AddMenuItem(menu, sz, name);
+				AddMenuItem(menu, name, name);
 			} else {
-				Format(name, sizeof(name), "%s (%d)", name, KvGetNum(kv,"price", 10));
-				AddMenuItem(menu, sz, name, (GetPlayerPoints(client) >= KvGetNum(kv, "price", 100)) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+				Format(display, sizeof(display), "%s (%d)", name, KvGetNum(kv, "price", 100));
+				AddMenuItem(menu, name, display, (GetPlayerPoints(client) >= KvGetNum(kv, "price", 100)) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 			}
 		} while (KvGotoNextKey(kv));
+		KvGoBack(kv);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+	} else {
+		new Handle:menu = CreateMenu(MenuHandler_Confirm);
+		SetMenuTitle(menu, "Confirmation Menu\nAre you sure you would like to purchase a %s for %d points?", title, KvGetNum(kv, "price", 100));
+		AddMenuItem(menu, "yes", "Yes");
+		AddMenuItem(menu, "no", "No");
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+	}
+}
+ShowPreviousMenu(client) {
+	new Handle:kv = GetClientKv(client);
+	if(KvGoBack(kv)) {
+		ShowMenu(client);
+	}
+}
+Handle:GetClientKv(client) {
+	if(GetClientTeam(client) == 3)
+	{
+		return g_hKvInfectedMenu[client];
+	} else if(GetClientTeam(client) == 2)
+	{
+		return g_hKvSurvivorMenu[client];
+	} else {
+		return INVALID_HANDLE;
 	}
 }
 bool:IsKeyCategory(Handle:kv) {
@@ -85,41 +118,43 @@ bool:IsKeyCategory(Handle:kv) {
 	return value;
 }
 LoadMenus() {
-	if(g_hKvInfectedMenu != INVALID_HANDLE) {
-		CloseHandle(g_hKvInfectedMenu);
+	for(new i = 1;i < MaxClients; i++)
+	{
+		if(g_hKvInfectedMenu[i] != INVALID_HANDLE) {
+			CloseHandle(g_hKvInfectedMenu[i]);
+		}
+		g_hKvInfectedMenu[i] = CreateKeyValues("infected");
+		if(g_hKvSurvivorMenu[i] != INVALID_HANDLE) {
+			CloseHandle(g_hKvSurvivorMenu[i]);
+		}
+		g_hKvSurvivorMenu[i] = CreateKeyValues("survivor");
+		CancelClientMenu(i);
 	}
 	new String:file[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, file, sizeof(file), "configs/merx_infected_menu.txt");
-	g_hKvInfectedMenu = CreateKeyValues("infected");
-	if(!FileExists(file)) {
-		FileToKeyValues(g_hKvInfectedMenu, file);	
-	} else {
-		KeyValuesToFile(g_hKvInfectedMenu, file);
+	new Handle:kv = CreateKeyValues("infected");
+	if(FileExists(file)) {
+		FileToKeyValues(kv, file);	
 	}
+	for(new i = 1; i < MaxClients; i++) 
+	{
+		KvCopySubkeys(kv, g_hKvInfectedMenu[i]);
+	}
+	CloseHandle(kv);
 	
-	if(g_hKvCommonMenu != INVALID_HANDLE) {
-		CloseHandle(g_hKvInfectedMenu);
-	}
-	BuildPath(Path_SM, file, sizeof(file), "configs/merx_common_menu.txt");
-	g_hKvCommonMenu = CreateKeyValues("common");
-	if(!FileExists(file)) {
-		FileToKeyValues(g_hKvCommonMenu, file);
-	} else {
-		KeyValuesToFile(g_hKvCommonMenu, file);
-	}
-	
-	if(g_hKvSurvivorMenu != INVALID_HANDLE) {
-		CloseHandle(g_hKvInfectedMenu);
-	}
 	BuildPath(Path_SM, file, sizeof(file), "configs/merx_survivor_menu.txt");
-	g_hKvSurvivorMenu = CreateKeyValues("survivor");
-	if(!FileExists(file)) {
-		FileToKeyValues(g_hKvSurvivorMenu, file);	
-	} else {
-		KeyValuesToFile(g_hKvSurvivorMenu, file);
+	kv = CreateKeyValues("survivor");
+	if(FileExists(file)) {
+		FileToKeyValues(kv, file);	
 	}
-	FileToKeyValues(g_hKvSurvivorMenu, file);
+	for(new i = 1; i < MaxClients; i++) 
+	{
+		KvCopySubkeys(kv, g_hKvSurvivorMenu[i]);
+	}
+	CloseHandle(kv);
 }
+
+
 
 
 

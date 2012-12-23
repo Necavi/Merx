@@ -37,13 +37,13 @@ public OnPluginStart()
 	SQL_TConnect(SQLCallback_DBConnect, "merx");
 }
 public OnClientPutInServer(client) {
-	g_iPlayerPoints[client] = 0;
+	g_iPlayerPoints[client] = g_iDefaultPoints;
 	g_iPlayerID[client] = -1;
 }
 public OnClientAuthorized(client, const String:auth[]) {
 	new String:query[256];
 	Format(query, sizeof(query), "SELECT `a`.`player_id`, `b`.`player_points` FROM `merx_players` AS `a` LEFT JOIN `merx_points` AS `b` ON `a`.`player_id` = `b`.`player_id` WHERE `a`.`player_steamid` = '%s';", auth);
-	SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
+	//SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) {
 	if (hndl == INVALID_HANDLE)
@@ -90,9 +90,8 @@ public SQLCallback_DBConnect(Handle:db, Handle:hndl, const String:error[], any:d
 			`player_id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
 			`player_steamid` varchar(32) NOT NULL, \
 			`player_name` varchar(32) NOT NULL, \
-			`player_points` int(11) DEFAULT '0', \
-			`player_joindate` timestamp NULL DEFAULT '0000-00-00 00:00:00', \
-			`player_lastseen` timestamp NULL DEFAULT '0000-00-00 00:00:00', \
+			`player_joindate` timestamp NULL, \
+			`player_lastseen` timestamp NULL, \
 			PRIMARY KEY (`player_steamid`) \
 			) ENGINE=MyISAM DEFAULT CHARSET=latin1");
 		SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
