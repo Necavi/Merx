@@ -7,6 +7,8 @@ native TakePlayerPoints(client, points);
 native SetPlayerPoints(client, points);
 native GetPlayerPoints(client);
 native ResetPlayerPoints(client);
+native Handle:GetDatabaseHandle();
 forward Action:OnPrePlayerPointsChange(client, oldPoints, &newPoints);
 forward Action:OnPlayerPointsChange(client, oldPoints, newPoints);
 forward OnPlayerPointsChanged(client, oldPoints, newPoints);
+forward OnDatabaseReady(Handle:database);
