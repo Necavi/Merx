@@ -19,6 +19,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_showmenu",Command_ShowMenu);
 }
 public Action:Command_ShowMenu(client, args) {
+	KvRewind(GetClientKv(client))
 	ShowMenu(client);
 	return Plugin_Handled;
 }
@@ -54,8 +55,30 @@ public MenuHandler_Confirm(Handle:menu, MenuAction:action, client, item) {
 		case MenuAction_Select:
 		{
 			new String:choice[8];
+			GetMenuItem(menu, item, choice, sizeof(choice));
 			if(StrEqual(choice, "yes")) {
-				
+				new Handle:kv = GetClientKv(client);
+				new bool:enabled = bool:KvGetNum(kv, "enabled", 1);
+				if(enabled)
+				{
+					new price = KvGetNum(kv, "price", 100);
+					if(price <= GetPlayerPoints(client))
+					{
+						new String:type[16];
+						new String:command[64];
+						KvGetString(kv, "command", command, sizeof(command));
+						KvGetString(kv, "type", type, sizeof(type), "client");
+						new flags = RemoveCommandCheatFlag(command);
+						if(StrEqual(type, "client", false)) {
+							PrintToServer("Running command: %s for client %N",command, client);
+							FakeClientCommand(client, command);
+						} else {
+							ServerCommand(command);
+						}
+						RestoreCommandFlags(command, flags);
+						TakePlayerPoints(client, price);
+					}
+				}
 			} else {
 				ShowPreviousMenu(client);
 			}
@@ -70,7 +93,7 @@ ShowMenu(client) {
 	{
 		new Handle:menu = CreateMenu(MenuHandler_Items);
 		SetMenuExitBackButton(menu, true);
-		SetMenuTitle(menu, "%s Menu\nPlease choose an item", title);
+		SetMenuTitle(menu, "%s Menu\nYou have %d points", title, GetPlayerPoints(client));
 		new String:name[32];
 		new String:display[64];
 		KvSavePosition(kv);
@@ -80,16 +103,23 @@ ShowMenu(client) {
 			if(IsKeyCategory(kv)) 
 			{
 				AddMenuItem(menu, name, name);
+				
 			} else {
 				Format(display, sizeof(display), "%s (%d)", name, KvGetNum(kv, "price", 100));
 				AddMenuItem(menu, name, display, (GetPlayerPoints(client) >= KvGetNum(kv, "price", 100)) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 			}
 		} while (KvGotoNextKey(kv));
 		KvGoBack(kv);
+		KvGoBack(kv);
+		if(GetMenuItemCount(menu) == 0) 
+		{
+			GetMenuTitle(menu, display, sizeof(display));
+			SetMenuTitle(menu, "%d\n\nNo items available",display);
+		}
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 	} else {
 		new Handle:menu = CreateMenu(MenuHandler_Confirm);
-		SetMenuTitle(menu, "Confirmation Menu\nAre you sure you would like to purchase a %s for %d points?", title, KvGetNum(kv, "price", 100));
+		SetMenuTitle(menu, "Confirmation Menu\nYou have %d points\nAre you sure you would like to buy:\n %s for %d %s?", GetPlayerPoints(client), title, KvGetNum(kv, "price", 100),(KvGetNum(kv, "price", 100) != 1) ? "points" : "point");
 		AddMenuItem(menu, "yes", "Yes");
 		AddMenuItem(menu, "no", "No");
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -114,7 +144,9 @@ Handle:GetClientKv(client) {
 }
 bool:IsKeyCategory(Handle:kv) {
 	new bool:value = KvGotoFirstSubKey(kv);
-	KvGoBack(kv);
+	if(value) {
+		KvGoBack(kv);
+	}
 	return value;
 }
 LoadMenus() {
@@ -123,16 +155,16 @@ LoadMenus() {
 		if(g_hKvInfectedMenu[i] != INVALID_HANDLE) {
 			CloseHandle(g_hKvInfectedMenu[i]);
 		}
-		g_hKvInfectedMenu[i] = CreateKeyValues("infected");
+		g_hKvInfectedMenu[i] = CreateKeyValues("Infected");
 		if(g_hKvSurvivorMenu[i] != INVALID_HANDLE) {
 			CloseHandle(g_hKvSurvivorMenu[i]);
 		}
-		g_hKvSurvivorMenu[i] = CreateKeyValues("survivor");
+		g_hKvSurvivorMenu[i] = CreateKeyValues("Survivor");
 		CancelClientMenu(i);
 	}
 	new String:file[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, file, sizeof(file), "configs/merx_infected_menu.txt");
-	new Handle:kv = CreateKeyValues("infected");
+	new Handle:kv = CreateKeyValues("Infected");
 	if(FileExists(file)) {
 		FileToKeyValues(kv, file);	
 	}
@@ -143,7 +175,7 @@ LoadMenus() {
 	CloseHandle(kv);
 	
 	BuildPath(Path_SM, file, sizeof(file), "configs/merx_survivor_menu.txt");
-	kv = CreateKeyValues("survivor");
+	kv = CreateKeyValues("Survivor");
 	if(FileExists(file)) {
 		FileToKeyValues(kv, file);	
 	}
@@ -153,8 +185,21 @@ LoadMenus() {
 	}
 	CloseHandle(kv);
 }
+RemoveCommandCheatFlag(const String:command[])
+{
+	new String:buffer[1][32];
+	ExplodeString(command, " ", buffer, sizeof(buffer), sizeof(buffer[]));
+	new flags = GetCommandFlags(buffer[0]);
+	SetCommandFlags(buffer[0], flags & ~FCVAR_CHEAT);
+	return flags;
+}	
 
-
+RestoreCommandFlags(const String:command[], flags = 0)
+{
+	new String:buffer[1][32];
+	ExplodeString(command, " ", buffer, sizeof(buffer), sizeof(buffer[]));
+	SetCommandFlags(buffer[0], flags);
+}	
 
 
 

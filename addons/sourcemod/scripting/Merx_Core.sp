@@ -37,7 +37,7 @@ public OnPluginStart()
 	SQL_TConnect(SQLCallback_DBConnect, "merx");
 }
 public OnClientPutInServer(client) {
-	g_iPlayerPoints[client] = g_iDefaultPoints;
+	g_iPlayerPoints[client] = 100000000;
 	g_iPlayerID[client] = -1;
 }
 public OnClientAuthorized(client, const String:auth[]) {
@@ -51,6 +51,7 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:cli
 		LogError("Error selecting player. %s.", error);
 	} else {
 		if(SQL_GetRowCount(hndl)>0) {
+			SQL_FetchRow(hndl);
 			g_iPlayerID[client] = SQL_FetchInt(hndl, 0);
 			g_iPlayerPoints[client] = SQL_FetchInt(hndl, 1);
 		} else {
@@ -69,7 +70,7 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:c
 	} else {
 		g_iPlayerID[client] = SQL_GetInsertId(hndl);
 		new String:query[256];
-		Format(query, sizeof(query), "INSERT INTO `merx_points` (`player_id`, `player_points`) VALUES('%d', '%d');",g_iPlayerID[client], g_iPlayerPoints[client]);
+		Format(query, sizeof(query), "INSERT INTO `merx_points` (`player_id`, `player_points`, `player_joindate`) VALUES('%d', '%d', NOW());",g_iPlayerID[client], g_iPlayerPoints[client]);
 		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
 	}
 }
@@ -85,58 +86,44 @@ public SQLCallback_DBConnect(Handle:db, Handle:hndl, const String:error[], any:d
 		LogError("Error connecting to database. %s.", error);
 	} else {
 		g_hDatabase = hndl;
-		new String:query[256];
+		new String:query[512];
+		Format(query, sizeof(query),"DROP TABLE `merx_players`;");
+		Format(query, sizeof(query),"DROP TABLE `merx_points`;");
+		SQL_Query(g_hDatabase, query);
 		Format(query, sizeof(query),"CREATE TABLE IF NOT EXISTS `merx_players` ( \
 			`player_id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
 			`player_steamid` varchar(32) NOT NULL, \
 			`player_name` varchar(32) NOT NULL, \
 			`player_joindate` timestamp NULL, \
-			`player_lastseen` timestamp NULL, \
-			PRIMARY KEY (`player_steamid`) \
+			`player_lastseen` timestamp NULL ON UPDATE NOW(), \
+			PRIMARY KEY (`player_id`) \
 			) ENGINE=MyISAM DEFAULT CHARSET=latin1");
 		SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
+	}
+}
+public SQLCallback_CreatePointsTable(Handle:db, Handle:hndl, const String:error[], any:data) {
+	if (hndl == INVALID_HANDLE)
+	{
+		LogError("Error creating points table. %s.", error);
+	}
+	if(g_hDatabase != INVALID_HANDLE) {
+		Call_StartForward(g_hEventOnDatabaseReady);
+		Call_PushCell(g_hDatabase);
+		Call_Finish();
+	}
+}
+public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[], any:data) {
+	if (hndl == INVALID_HANDLE)
+	{
+		LogError("Error creating player table. %s.", error);
+	} else {
+		new String:query[256];
 		Format(query, sizeof(query), "CREATE TABLE IF NOT EXISTS `merx_points` ( \
 			`player_id` int(10) unsigned NOT NULL, \
 			`player_points` int(11) DEFAULT NULL, \
 			PRIMARY KEY (`player_id`) \
 			) ENGINE=MyISAM DEFAULT CHARSET=latin1");
 		SQL_TQuery(g_hDatabase, SQLCallback_CreatePointsTable,query);
-	}
-}
-public SQLCallback_CreatePointsTable(Handle:db, Handle:hndl, const String:error[], any:data) {
-	if (hndl == INVALID_HANDLE)
-	{
-		LogError("Error creating tables. %s.", error);
-	}
-}
-public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[], any:data) {
-	if (hndl == INVALID_HANDLE)
-	{
-		LogError("Error creating tables. %s.", error);
-	} else {
-		new String:query[256];
-		Format(query, sizeof(query), "DELIMITER $$ \
-		CREATE TRIGGER `l4d2_merx_initial_timestamps` \
-		BEFORE INSERT ON `merx_players` \
-		FOR EACH ROW \
-		SET NEW.`player_lastseen` = NOW(), \
-			NEW.`player_joindate` = NOW()$$ \
-		CREATE TRIGGER `l4d2_merx_update_timestamp` \
-		BEFORE UPDATE ON `merx_players` \
-		FOR EACH ROW \
-		SET NEW.`player_lastseen` = NOW()$$");
-		SQL_TQuery(g_hDatabase, SQLCallback_AddTrigger, query);
-	}
-}
-public SQLCallback_AddTrigger(Handle:db, Handle:hndl, const String:error[], any:data) {
-	if (hndl == INVALID_HANDLE)
-	{
-		LogError("Error connecting to database. %s.", error);
-	}
-	if(g_hDatabase != INVALID_HANDLE) {
-		Call_StartForward(g_hEventOnDatabaseReady);
-		Call_PushCell(g_hDatabase);
-		Call_Finish();
 	}
 }
 public ConVar_DefaultPoints(Handle:convar, String:oldValue[], String:newValue[]) {

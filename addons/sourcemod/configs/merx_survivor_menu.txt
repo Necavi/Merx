@@ -1,18 +1,295 @@
-"survivor"
+"Survivor"
 {
-	"gravity"
+	"Upgrades"
 	{
-		"command"		"sv_gravity 800"
-		"price"			"1"
-		"commandtype"	"server"
-	}
-	"weapons"
-	{
-		"ak47"
+		"Explosive Ammo Pack"
 		{
-			"command"	"give weapon_ak47"
-			"price"		"2"
-			"type"		"client"
+			"command"	"give upgradepack_explosive"
+			"price"		"10"
+		}
+		"Incendiary Ammo Pack"
+		{
+			"command"	"give upgradepack_incendiary"
+			"price"		"10"
+		}
+		"Explosive Ammo"
+		{
+			"command"	"upgrade_add EXPLOSIVE_AMMO"
+			"price"		"10"
+		}
+		"Incendiary Ammo"
+		{
+			"command"	"upgrade_add INCENDIARY_AMMO"
+			"price"		"10"
+		}
+		"Laser Sight"
+		{
+			"command"	"upgrade_add LASER_SIGHT"
+			"price"		"10"
+		}
+		"Ammo"
+		{
+			"command"	"give ammo"
+			"price"		"10"
+		}
+	}
+	"Snipers"
+	{
+		"Hunting Rifle"
+		{
+			"command"	"give weapon_hunting_rifle"
+			"price"		"20"
+		}
+		"Military Sniper"
+		{
+			"command"	"give weapon_sniper_military"
+			"price"		"20"
+		}
+		"AWP"
+		{
+			"command"	"give weapon_sniper_awp"
+			"price"		"20"
+		}
+		"Scout"
+		{
+			"command"	"give weapon_sniper_scout"
+			"price"		"20"
+		}
+	}
+	"Rifles"
+	{
+		"M60"
+		{
+			"command"	"give weapon_rifle_m60"
+			"price"		"40"
+		}
+		"M16"
+		{
+			"command"	"give weapon_rifle"
+			"price"		"40"
+		}
+		"SCAR"
+		{
+			"command"	"give weapon_rifle_desert"
+			"price"		"40"
+		}
+		"AK-47"
+		{
+			"command"	"give weapon_rifle_ak47"
+			"price"		"40"
+		}
+		"SG552"
+		{
+			"command"	"give weapon_rifle_sg552"
+			"price"		"40"
+		}
+	}
+	"Shotguns"
+	{
+		"Auto Shotgun"
+		{
+			"command"	"give weapon_autoshotgun"
+			"price"		"80"
+		}
+		"Chrome Shotgun"
+		{
+			"command"	"give weapon_shotgun_chrome"
+			"price"		"80"
+		}
+		"Spas Shotgun"
+		{
+			"command"	"give weapon_shotgun_spas"
+			"price"		"80"
+		}
+		"Pump Shotgun"
+		{
+			"command"	"give weapon_pumpshotgun"
+			"price"		"80"
+		}
+	}
+	"SMGs"
+	{
+		"SMG"
+		{
+			"command"	"give weapon_smg"
+			"price"		"160"
+		}
+		"Silenced SMG"
+		{
+			"command"	"give weapon_smg_silenced"
+			"price"		"160"
+		}
+		"MP5"
+		{
+			"command"	"give weapon_smg_mp5"
+			"price"		"160"
+		}
+	}
+	"Explosives"
+	{
+		"Molotov"
+		{
+			"command"	"give weapon_molotov"
+			"price"		"320"
+		}
+		"Pipe Bomb"
+		{
+			"command"	"give weapon_pipe_bomb"
+			"price"		"320"
+		}
+		"Bile Bomb"
+		{
+			"command"	"give weapon_vomitjar"
+			"price"		"320"
+		}
+		"Grenade Launcher"
+		{
+			"command"	"give weapon_grenade_launcher"
+			"price"		"320"
+		}
+	}
+	"Health"
+	{
+		"First Aid Kit"
+		{
+			"command"	"give weapon_first_aid_kit"
+			"price"		"640"
+		}
+		"Defibrillator"
+		{
+			"command"	"give weapon_defibrillator"
+			"price"		"640"
+		}
+		"Pills"
+		{
+			"command"	"give weapon_pain_pills"
+			"price"		"640"
+		}
+		"Adrenaline"
+		{
+			"command"	"give weapon_adrenaline"
+			"price"		"640"
+		}
+		"Full Health"
+		{
+			"command"	"give health"
+			"price"		"640"
+		}
+	}
+	"Melee and Pistols"
+	{
+		"Pistol"
+		{
+			"command"	"give weapon_pistol"
+			"price"		"1280"
+		}
+		"Magnum"
+		{
+			"command"	"give weapon_pistol_magnum"
+			"price"		"1280"
+		}
+		"Chainsaw"
+		{
+			"command"	"give weapon_chainsaw"
+			"price"		"1280"
+		}
+		"Cricket Bat"
+		{
+			"command"	"give weapon_cricket_bat"
+			"price"		"1280"
+		}
+		"Crowbar"
+		{
+			"command"	"give weapon_crowbar"
+			"price"		"1280"
+		}
+		"Baseball Bat"
+		{
+			"command"	"give weapon_baseball_bat"
+			"price"		"1280"
+		}
+		"Electric Guitar"
+		{
+			"command"	"give weapon_electric_guitar"
+			"price"		"1280"
+		}
+		"Fireaxe"
+		{
+			"command"	"give weapon_fireaxe"
+			"price"		"1280"
+		}
+		"Katana"
+		{
+			"command"	"give weapon_katana"
+			"price"		"1280"
+		}
+		"Knife"
+		{
+			"command"	"give weapon_knife"
+			"price"		"1280"
+		}
+		"Nightstick"
+		{
+			"command"	"give weapon_tonfa"
+			"price"		"1280"
+		}
+		"Golf Club:
+		{
+			"command"	"give weapon_golfclub"
+			"price"		"1280"
+		}
+		"Machete"
+		{
+			"command"	"give weapon_machete"
+			"price"		"1280"
+		}
+		"Frying Pan"
+		{
+			"command"	"give weapon_frying_pan"
+			"price"		"1280"
+		}
+		"Hunting Knife"
+		{
+			"command"	"give weapon_hunting_knife"
+			"price"		"1280"
+		}
+		"Riot Shield"
+		{
+			"command"	"give weapon_riotshield"
+			"price"		"1280"
+		}
+	}
+	"Props"
+	{
+		"Gascan"
+		{
+			"command"	"give weapon_gascan"
+			"price"		"2560"
+		}
+		"Oxygen Tank"
+		{
+			"command"	"give weapon_oxygentank"
+			"price"		"2560"
+		}
+		"Propane Tank"
+		{
+			"command"	"give weapon_propanetank"
+			"price"		"2560"
+		}
+		"Gnome"
+		{
+			"command"	"give weapon_gnome"
+			"price"		"2560"
+		}
+		"Fireworks Crate"
+		{
+			"command"	"give weapon_fireworkcrate"
+			"price"		"2560"
+		}
+		"Cola Bottles"
+		{
+			"command"	"give weapon_cola_bottles"
+			"price"		"2560"
 		}
 	}
 }

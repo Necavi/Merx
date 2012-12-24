@@ -1,6 +1,6 @@
-"infected"
+"Infected"
 {
-	"weapons"
+	"Weapons"
 	{
 		"ak47"
 		{
@@ -9,7 +9,7 @@
 			"type"		"client"
 		}
 	}
-	"gravity"
+	"Gravity"
 	{
 		"command"		"sv_gravity 800"
 		"price"			"1"
