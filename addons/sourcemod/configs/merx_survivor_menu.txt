@@ -233,7 +233,7 @@
 			"command"	"give weapon_tonfa"
 			"price"		"1280"
 		}
-		"Golf Club:
+		"Golf Club"
 		{
 			"command"	"give weapon_golfclub"
 			"price"		"1280"

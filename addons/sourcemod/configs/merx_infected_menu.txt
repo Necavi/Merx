@@ -1,18 +1,63 @@
 "Infected"
 {
-	"Weapons"
+	"Full Health"
 	{
-		"ak47"
-		{
-			"command"	"give weapon_ak47"
-			"price"		"2"
-			"type"		"client"
-		}
+		"command"	"give heal"
+		"price"		"10"
 	}
-	"Gravity"
+	"Boomer"
 	{
-		"command"		"sv_gravity 800"
-		"price"			"1"
-		"commandtype"	"server"
+		"command"	"z_spawn boomer auto"
+		"price"		"10"
+	}
+	"Spitter"
+	{
+		"command"	"z_spawn spitter auto"
+		"price"		"10"
+	}
+	"Smoker"
+	{
+		"command"	"z_spawn smoker auto"
+		"price"		"10"
+	}
+	"Hunter"
+	{
+		"command"	"z_spawn hunter auto"
+		"price"		"10"
+	}
+	"Charger"
+	{
+		"command"	"z_spawn charger auto"
+		"price"		"10"
+	}
+	"Jockey"
+	{
+		"command"	"z_spawn jockey auto"
+		"price"		"10"
+	}
+	"Witch"
+	{
+		"command"	"z_spawn witch auto"
+		"price"		"10"
+	}
+	"Witch Bride"
+	{
+		"command"	"z_spawn witch_bride auto"
+		"price"		"10"
+	}
+	"Tank"
+	{
+		"command"	"z_spawn tank auto"
+		"price"		"10"
+	}
+	"Horde"
+	{
+		"command"	"director_force_panic_event"
+		"price"		"10"
+	}
+	"Uncommon Mob"
+	{
+		"command"	"z_spawn mob"
+		"price"		"10"
 	}
 }
