@@ -17,6 +17,7 @@ new Handle:g_hDatabase = INVALID_HANDLE;
 new g_iPlayerPoints[MAXPLAYERS + 2];
 new g_iPlayerID[MAXPLAYERS + 2];
 new g_iDefaultPoints = 10;
+
 public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
 {
 	CreateNative("GivePlayerPoints", Native_GivePlayerPoints);
@@ -111,6 +112,7 @@ public SQLCallback_DBConnect(Handle:db, Handle:hndl, const String:error[], any:d
 			`player_name` varchar(32) NOT NULL, \
 			`player_joindate` timestamp NULL, \
 			`player_lastseen` timestamp NULL ON UPDATE NOW(), \
+			`player_points` int(10) NOT NULL DEFAULT(0), \
 			PRIMARY KEY (`player_id`) \
 			)");
 		SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
@@ -135,15 +137,11 @@ public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[
 	{
 		LogError("Error creating player table. %s.", error);
 	} 
-	else 
+	if(g_hDatabase != INVALID_HANDLE) 
 	{
-		new String:query[256];
-		Format(query, sizeof(query), "CREATE TABLE IF NOT EXISTS `merx_points` ( \
-			`player_id` int(10) unsigned NOT NULL, \
-			`player_points` int(11) DEFAULT NULL, \
-			PRIMARY KEY (`player_id`) \
-			) ENGINE=MyISAM DEFAULT CHARSET=latin1");
-		SQL_TQuery(g_hDatabase, SQLCallback_CreatePointsTable,query);
+		Call_StartForward(g_hEventOnDatabaseReady);
+		Call_PushCell(g_hDatabase);
+		Call_Finish();
 	}
 }
 public ConVar_DefaultPoints(Handle:convar, String:oldValue[], String:newValue[]) 

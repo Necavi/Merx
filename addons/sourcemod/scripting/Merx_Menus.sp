@@ -1,5 +1,5 @@
 #include <sourcemod>
-#include <Merx_Core>
+#include "include/Merx"
 #include <sdktools>
 
 public Plugin:myinfo = 
@@ -14,7 +14,7 @@ public Plugin:myinfo =
 new Handle:g_hKvTeamMenus[MAXPLAYERS + 2][16];
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_showmenu",Command_ShowMenu);
+	RegConsoleCmd("sm_showmenu", Command_ShowMenu);
 	LoadMenus();
 }
 public Action:Command_ShowMenu(client, args) 
@@ -33,7 +33,8 @@ public MenuHandler_Items(Handle:menu, MenuAction:action, client, item)
 		}
 		case MenuAction_Cancel:
 		{
-			if(item == MenuCancel_ExitBack) {
+			if(item == MenuCancel_ExitBack) 
+			{
 				ShowPreviousMenu(client);
 			}
 		}
@@ -58,7 +59,8 @@ public MenuHandler_Confirm(Handle:menu, MenuAction:action, client, item)
 		{
 			new String:choice[8];
 			GetMenuItem(menu, item, choice, sizeof(choice));
-			if(StrEqual(choice, "yes")) {
+			if(StrEqual(choice, "yes")) 
+			{
 				new Handle:kv = GetClientKv(client);
 				new bool:enabled = bool:KvGetNum(kv, "enabled", 1);
 				if(enabled)
@@ -104,14 +106,12 @@ ShowMenu(client)
 		SetMenuTitle(menu, "%s Menu\nYou have %d points", title, GetPlayerPoints(client));
 		new String:name[32];
 		new String:display[64];
-		KvSavePosition(kv);
 		do
 		{
 			KvGetSectionName(kv, name, sizeof(name));
 			if(IsKeyCategory(kv)) 
 			{
 				AddMenuItem(menu, name, name);
-				
 			} 
 			else 
 			{
@@ -119,7 +119,6 @@ ShowMenu(client)
 				AddMenuItem(menu, name, display, (GetPlayerPoints(client) >= KvGetNum(kv, "price", 100)) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 			}
 		} while (KvGotoNextKey(kv));
-		KvGoBack(kv);
 		KvGoBack(kv);
 		if(GetMenuItemCount(menu) == 0) 
 		{
@@ -177,7 +176,7 @@ LoadMenus()
 			FileToKeyValues(kv, file);
 			for(new client = 1; client < MaxClients; client++)
 			{
-				if(g_hKvTeamMenus[client][team_index] !=INVALID_HANDLE)
+				if(g_hKvTeamMenus[client][team_index] != INVALID_HANDLE)
 				{
 					CloseHandle(g_hKvTeamMenus[client][team_index]);
 				}
