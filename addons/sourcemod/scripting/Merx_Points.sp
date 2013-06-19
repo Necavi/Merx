@@ -6,7 +6,7 @@ public Plugin:myinfo =
 	name = "Merx Points System",
 	author = "necavi",
 	description = "Tracks player points",
-	version = "0.1",
+	version = MERX_BUILD,
 	url = "http://necavi.org"
 }
 new Handle:g_hEventOnPrePlayerPointChange = INVALID_HANDLE;
@@ -39,6 +39,8 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 }
 public OnPluginStart()
 {
+	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points to chat.");
+	CreateConVar("merx_version", MERX_BUILD, "Either the current build number or CUSTOM for a hand-compile.", FCVAR_PLUGIN | FCVAR_NOTIFY);
 	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give players.", FCVAR_PLUGIN, true, 0.0);
 	g_iDefaultPoints = GetConVarInt(g_hCvarDefaultPoints);
 	HookConVarChange(g_hCvarDefaultPoints, ConVar_DefaultPoints);
@@ -70,6 +72,18 @@ public OnClientAuthorized(client, const String:auth[])
 		Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
 		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
 	}
+}
+public Action:ConCmd_Points(client, args)
+{
+	if(client > 0)
+	{
+		CReplyToCommand(client, "%sYou have {olive}%d{default} points.", MERX_TAG, g_iPlayerPoints[client]);
+	}
+	else
+	{
+		CReplyToCommand(client, "%sThe server is unable to use points.", MERX_TAG);
+	}
+	return Plugin_Handled;
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) 
 {
