@@ -64,9 +64,12 @@ public OnClientDisconnect(client)
 }
 public OnClientAuthorized(client, const String:auth[]) 
 {
-	new String:query[256];
-	Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
-	SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
+	if(!IsFakeClient(client))
+	{
+		new String:query[256];
+		Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
+		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
+	}
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) 
 {

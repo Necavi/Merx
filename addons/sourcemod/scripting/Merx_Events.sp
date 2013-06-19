@@ -60,6 +60,8 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new any:args[16];
 	new Handle:kv = g_hEvents;
+	KvRewind(kv);
+	KvJumpToKey(kv, name);
 	new String:szFormat[1024];
 	KvGetString(kv, "format", szFormat, sizeof(szFormat));
 	new String:szKey[64];
@@ -70,20 +72,23 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 	{
 		return;
 	}
-	new bool:targetTeams = bool:KvGetNum(kv, "rewardteam");
 	new reward = KvGetNum(kv, "reward");
-	if(StrEqual(szKey, "team") || targetTeams)
+	if(KvGetNum(kv, "rewardteam"))
 	{
 		new team;
-		if(targetTeams)
-		{
-			team = GetClientTeam(GetClientOfUserId(GetEventInt(event, szKey)));
-		}
-		else
+		if(StrEqual(szKey, "team"))
 		{
 			team = GetEventInt(event, "team");
 		}
-		if(team >= 0)
+		else if(StrEqual(szKey, "winner"))
+		{
+			team = GetEventInt(event, "winner");
+		}
+		else
+		{
+			team = GetClientTeam(GetClientOfUserId(GetEventInt(event, szKey)));
+		}
+		if(team >= 2)
 		{
 			for(new i = 1; i <= MaxClients; i++)
 			{
@@ -92,6 +97,10 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 					GivePlayerPoints(i, reward);
 				}
 			}
+		}
+		else
+		{
+			return;
 		}
 	}
 	else
@@ -130,22 +139,28 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 			if(StrEqual(szType, "short") || StrEqual(szType, "byte") || StrEqual(szType, "long"))
 			{
 				args[i] = GetEventInt(event, szKey);
-				PrintToServer("%d", args[i]);
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "client"))
 			{
 				args[i] = GetClientOfUserId(GetEventInt(event, szKey));
-				PrintToServer("%d", args[i]);
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "float"))
 			{
-				Call_PushCell(GetEventFloat(event, szKey));
+				args[i] = GetEventFloat(event, szKey);
+				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "bool"))
 			{
-				Call_PushCell(GetEventBool(event, szKey));
+				args[i] = GetEventBool(event, szKey);
+				Call_PushCellRef(args[i]);
+			}
+			else if(StrEqual(szType, "team"))
+			{
+				new String:szBuffer[32];
+				GetTeamName(GetEventInt(event, "winner"), szBuffer, sizeof(szBuffer));
+				Call_PushString(szBuffer);
 			}
 			else if(StrEqual(szType, "string"))
 			{
@@ -162,13 +177,13 @@ public WrappedPrintToChatAll(const String:format[], any:...)
 {
 	new String:szBuffer[1024];
 	VFormat(szBuffer, sizeof(szBuffer), format, 2);
-	PrintToChatAll("%s", szBuffer);
+	CPrintToChatAll("%s%s", MERX_TAG, szBuffer);
 }
 public WrappedPrintToChat(client, const String:format[], any:...)
 {
 	new String:szBuffer[1024];
 	VFormat(szBuffer, sizeof(szBuffer), format, 3);
-	PrintToChat(client, "%s", szBuffer);
+	CPrintToChat(client, "%s%s", MERX_TAG, szBuffer);
 }
 
 

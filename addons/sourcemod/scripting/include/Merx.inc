@@ -1,6 +1,9 @@
 #pragma semicolon 1
 
 #include <sourcemod>
+#include <morecolors>
+
+#define MERX_TAG "{red}[{olive}MERX{red}]{default} "
 
 native GivePlayerPoints(client, points);
 native TakePlayerPoints(client, points);
