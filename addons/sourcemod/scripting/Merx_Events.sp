@@ -1,5 +1,6 @@
 #include <sourcemod>
-//#include "include/Merx"
+#include <sdktools>
+#include "include/Merx"
 
 public Plugin:myinfo = 
 {
@@ -11,20 +12,22 @@ public Plugin:myinfo =
 }
 
 new Handle:g_hEvents = INVALID_HANDLE;
-new Handle:g_hEventsCustom = INVALID_HANDLE;
 
 public OnPluginStart()
 {
 	PrintToServer("Loading plugin Merx Events");
-	//LoadTranslations("merx.events");
+}
+public OnMapStart()
+{
 	new String:path[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, path, sizeof(path), "translations/merx.events.translations.txt")
+	new String:szGameDir[64];
+	GetGameFolderName(szGameDir, sizeof(szGameDir));
+	Format(path, sizeof(path), "merx.%s.events.txt", szGameDir); 
 	if(FileExists(path))
 	{
-		LoadTranslations("merx.events.translations");
+		LoadTranslations(path);
 	}
-	PrintToServer("Loading events for Merx Events");
-	LoadEvents();
+	LoadEvents();	
 }
 LoadEvents()
 {
@@ -34,42 +37,84 @@ LoadEvents()
 		CloseHandle(g_hEvents);
 	}
 	g_hEvents = CreateKeyValues("events");
-	BuildPath(Path_SM, path, sizeof(path), "configs/merx.events.cfg");
+	new String:szGameDir[64];
+	GetGameFolderName(szGameDir, sizeof(szGameDir));
+	BuildPath(Path_SM, path, sizeof(path), "configs/merx/%s.events.cfg", szGameDir);
 	FileToKeyValues(g_hEvents, path);
 	HookEvents(g_hEvents);
-	if(g_hEventsCustom != INVALID_HANDLE)
-	{
-		CloseHandle(g_hEventsCustom);
-	}
-	g_hEventsCustom = CreateKeyValues("custom_events");
-	FileToKeyValues(g_hEventsCustom, "configs/merx.events.custom.cfg");
-	HookEvents(g_hEventsCustom);
 }
 HookEvents(Handle:events)
 {
 	KvRewind(events);
 	if(KvGotoFirstSubKey(events))
 	{
-		PrintToServer("Hooking events");
 		new String:name[64];
 		do
 		{
 			KvGetSectionName(events, name, sizeof(name));
 			HookEvent(name, Event_Callback);
-			PrintToServer("Hooking event: %s", name);
 		} while(KvGotoNextKey(events));
 	}
 }
 public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	new Handle:kv = GetEventKeyValue(name);
+	new any:args[16];
+	new Handle:kv = g_hEvents;
 	new String:szFormat[1024];
 	KvGetString(kv, "format", szFormat, sizeof(szFormat));
-	Call_StartFunction(INVALID_HANDLE, WrappedPrintToChatAll);
+	new String:szKey[64];
+	KvGetString(kv, "rewardtarget", szKey, sizeof(szKey), "userid");
+	new String:szNotEquals[64];
+	KvGetString(kv, "rewardifnotequals", szNotEquals, sizeof(szNotEquals));
+	if(GetEventInt(event, szKey) == GetEventInt(event, szNotEquals))
+	{
+		return;
+	}
+	new bool:targetTeams = bool:KvGetNum(kv, "rewardteam");
+	new reward = KvGetNum(kv, "reward");
+	if(StrEqual(szKey, "team") || targetTeams)
+	{
+		new team;
+		if(targetTeams)
+		{
+			team = GetClientTeam(GetClientOfUserId(GetEventInt(event, szKey)));
+		}
+		else
+		{
+			team = GetEventInt(event, "team");
+		}
+		if(team >= 0)
+		{
+			for(new i = 1; i <= MaxClients; i++)
+			{
+				if(IsValidPlayer(i) && GetClientTeam(i) == team)
+				{
+					GivePlayerPoints(i, reward);
+				}
+			}
+		}
+	}
+	else
+	{
+		new client = GetClientOfUserId(GetEventInt(event, szKey));
+		GivePlayerPoints(client, reward);
+	}
+	if(KvGetNum(kv, "notifyall"))
+	{
+		Call_StartFunction(INVALID_HANDLE, WrappedPrintToChatAll);
+	}
+	else
+	{
+		Call_StartFunction(INVALID_HANDLE, WrappedPrintToChat);
+		Call_PushCell(GetClientOfUserId(GetEventInt(event, szKey)));
+	}
 	Call_PushString(szFormat);
+	if(KvGetNum(kv, "translated"))
+	{
+		Call_PushCell(0);
+	}
 	if(KvJumpToKey(kv, "formatkeys") && KvGotoFirstSubKey(kv, false))
 	{
-		new String:szKey[64]
 		new String:szType[64];
 		new Handle:keys = CreateArray(ByteCountToCells(64));
 		do
@@ -82,30 +127,35 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 		{
 			GetArrayString(keys, i, szKey, sizeof(szKey));
 			KvGetString(kv, szKey, szType, sizeof(szType));
-			if(StrEqual(szType, "short") || StrEqual(szType, "byte"))
+			if(StrEqual(szType, "short") || StrEqual(szType, "byte") || StrEqual(szType, "long"))
 			{
-				new userid = GetEventInt(event, szKey);
-				PrintToServer("%d", userid);
-				Call_PushCellRef(userid);
+				args[i] = GetEventInt(event, szKey);
+				PrintToServer("%d", args[i]);
+				Call_PushCellRef(args[i]);
 			}
-			PrintToServer("Key: %s Value: %s", szKey, szType);
+			else if(StrEqual(szType, "client"))
+			{
+				args[i] = GetClientOfUserId(GetEventInt(event, szKey));
+				PrintToServer("%d", args[i]);
+				Call_PushCellRef(args[i]);
+			}
+			else if(StrEqual(szType, "float"))
+			{
+				Call_PushCell(GetEventFloat(event, szKey));
+			}
+			else if(StrEqual(szType, "bool"))
+			{
+				Call_PushCell(GetEventBool(event, szKey));
+			}
+			else if(StrEqual(szType, "string"))
+			{
+				new String:szBuffer[256];
+				GetEventString(event, szKey, szBuffer, sizeof(szBuffer));
+				Call_PushString(szBuffer);
+			}
 		}
 	}
 	Call_Finish();
-}
-Handle:GetEventKeyValue(const String:name[])
-{
-	KvRewind(g_hEvents);
-	if(KvJumpToKey(g_hEvents, name))
-	{
-		return g_hEvents;
-	}
-	else
-	{
-		KvRewind(g_hEventsCustom);
-		KvJumpToKey(g_hEventsCustom, name);
-		return g_hEventsCustom;
-	}
 }
 
 public WrappedPrintToChatAll(const String:format[], any:...)
@@ -113,6 +163,12 @@ public WrappedPrintToChatAll(const String:format[], any:...)
 	new String:szBuffer[1024];
 	VFormat(szBuffer, sizeof(szBuffer), format, 2);
 	PrintToChatAll("%s", szBuffer);
+}
+public WrappedPrintToChat(client, const String:format[], any:...)
+{
+	new String:szBuffer[1024];
+	VFormat(szBuffer, sizeof(szBuffer), format, 3);
+	PrintToChat(client, "%s", szBuffer);
 }
 
 

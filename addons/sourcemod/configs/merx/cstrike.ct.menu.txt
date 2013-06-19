@@ -1,0 +1,8 @@
+"terrorist"
+{
+	"something"
+	{
+		"command"	"echo hello"
+		"price"		"5"
+	}
+}

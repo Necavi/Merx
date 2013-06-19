@@ -1,4 +1,5 @@
 #include <sourcemod>
+#include "include/Merx"
 
 public Plugin:myinfo = 
 {
@@ -13,10 +14,14 @@ new Handle:g_hEventOnPlayerPointChange = INVALID_HANDLE;
 new Handle:g_hEventOnPlayerPointChanged = INVALID_HANDLE;
 new Handle:g_hEventOnDatabaseReady = INVALID_HANDLE;
 new Handle:g_hCvarDefaultPoints = INVALID_HANDLE;
+new Handle:g_hCvarSaveTimer = INVALID_HANDLE;
 new Handle:g_hDatabase = INVALID_HANDLE;
+
 new g_iPlayerPoints[MAXPLAYERS + 2];
 new g_iPlayerID[MAXPLAYERS + 2];
-new g_iDefaultPoints = 10;
+new g_iDefaultPoints;
+
+new DBType:g_DatabaseType;
 
 public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
 {
@@ -24,29 +29,44 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 	CreateNative("TakePlayerPoints", Native_TakePlayerPoints);
 	CreateNative("SetPlayerPoints", Native_SetPlayerPoints);
 	CreateNative("GetPlayerPoints", Native_GetPlayerPoints);
+	CreateNative("SavePlayerPoints", Native_SavePlayerPoints);
 	CreateNative("ResetPlayerPoints", Native_ResetPlayerPoints);
 	g_hEventOnPrePlayerPointChange = CreateGlobalForward("OnPrePlayerPointsChange", ET_Hook, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hEventOnPlayerPointChange = CreateGlobalForward("OnPlayerPointsChange", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	g_hEventOnPlayerPointChanged = CreateGlobalForward("OnPlayerPointsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
-	g_hEventOnDatabaseReady = CreateGlobalForward("OnDatabaseReady", ET_Ignore, Param_Cell);
+	g_hEventOnDatabaseReady = CreateGlobalForward("OnDatabaseReady", ET_Ignore, Param_Cell, Param_Cell);
 	return APLRes_Success;
 }
 public OnPluginStart()
 {
-	g_hCvarDefaultPoints = CreateConVar("pts_default_points","10","Sets the default number of points to give players.",FCVAR_PLUGIN, true, 0.0);
+	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give players.", FCVAR_PLUGIN, true, 0.0);
+	g_iDefaultPoints = GetConVarInt(g_hCvarDefaultPoints);
 	HookConVarChange(g_hCvarDefaultPoints, ConVar_DefaultPoints);
-	SQL_TConnect(SQLCallback_DBConnect, "merx");
+	g_hCvarSaveTimer = CreateConVar("merx_save_timer", "300", "Sets the duration between automatic saves.", FCVAR_PLUGIN);
+	CreateTimer(GetConVarFloat(g_hCvarSaveTimer), Timer_SavePoints);
+	if(SQL_CheckConfig("merx"))
+	{
+		SQL_TConnect(SQLCallback_DBConnect, "merx");
+	}
+	else
+	{
+		SQL_TConnect(SQLCallback_DBConnect);
+	}
 }
-public OnClientPutInServer(client) 
+public OnClientConnected(client) 
 {
 	g_iPlayerPoints[client] = 0;
 	g_iPlayerID[client] = -1;
 }
+public OnClientDisconnect(client)
+{
+	SaveClientPoints(client);
+}
 public OnClientAuthorized(client, const String:auth[]) 
 {
 	new String:query[256];
-	Format(query, sizeof(query), "SELECT `a`.`player_id`, `b`.`player_points` FROM `merx_players` AS `a` LEFT JOIN `merx_points` AS `b` ON `a`.`player_id` = `b`.`player_id` WHERE `a`.`player_steamid` = '%s';", auth);
-	//SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
+	Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
+	SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) 
 {
@@ -58,16 +78,16 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:cli
 	{
 		if(SQL_GetRowCount(hndl)>0) 
 		{
+			PrintToServer("Retrieving old player %N", client);
 			SQL_FetchRow(hndl);
 			g_iPlayerID[client] = SQL_FetchInt(hndl, 0);
-			g_iPlayerPoints[client] = SQL_FetchInt(hndl, 1);
+			g_iPlayerPoints[client] += SQL_FetchInt(hndl, 1);
 		} 
 		else 
 		{
-			new String:query[256];
-			new String:auth[32];
-			GetClientAuthString(client, auth, sizeof(auth));
-			Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_steamid`, `player_name`) VALUES ('%s', '%N');",auth, client);
+			PrintToServer("Adding new player %N", client);
+			new String:query[128];
+			Format(query, sizeof(query), "SELECT max(`player_id`) FROM `merx_players`;");
 			SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, client);
 		}
 	}
@@ -80,10 +100,15 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:c
 	} 
 	else 
 	{
-		g_iPlayerID[client] = SQL_GetInsertId(hndl);
-		new String:query[256];
-		Format(query, sizeof(query), "INSERT INTO `merx_points` (`player_id`, `player_points`, `player_joindate`) VALUES('%d', '%d', NOW());",g_iPlayerID[client], g_iPlayerPoints[client]);
-		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
+		SQL_FetchRow(hndl);
+		g_iPlayerID[client] = SQL_FetchInt(hndl, 0) + 1;
+		PrintToServer("client: %N g_iPlayerID: %d max(`player_id`): %d", client, g_iPlayerID[client], SQL_FetchInt(hndl, 0));
+		new String:query[512];
+		new String:auth[32];
+		GetClientAuthString(client, auth, sizeof(auth));
+		g_iPlayerPoints[client] += g_iDefaultPoints;
+		Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_joindate`) VALUES ('%d', '%s', '%N', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, client, g_iPlayerPoints[client]);
+		SQL_TQuery(g_hDatabase, SQLCallback_Void, query, client);
 	}
 }
 public SQLCallback_Void(Handle:db, Handle:hndl, const String:error[], any:client) 
@@ -102,33 +127,26 @@ public SQLCallback_DBConnect(Handle:db, Handle:hndl, const String:error[], any:d
 	else 
 	{
 		g_hDatabase = hndl;
+		new String:ident[32];
+		SQL_GetDriverIdent(SQL_ReadDriver(g_hDatabase), ident, sizeof(ident));
+		if(StrEqual("mysql", ident, false))
+		{
+			g_DatabaseType = DB_MySQL;
+		}
+		else if(StrEqual("sqlite", ident, false))
+		{
+			g_DatabaseType = DB_SQLite;
+		}
 		new String:query[512];
-		Format(query, sizeof(query),"DROP TABLE `merx_players`;");
-		Format(query, sizeof(query),"DROP TABLE `merx_points`;");
-		SQL_Query(g_hDatabase, query);
 		Format(query, sizeof(query),"CREATE TABLE IF NOT EXISTS `merx_players` ( \
-			`player_id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
-			`player_steamid` varchar(32) NOT NULL, \
-			`player_name` varchar(32) NOT NULL, \
-			`player_joindate` timestamp NULL, \
-			`player_lastseen` timestamp NULL ON UPDATE NOW(), \
-			`player_points` int(10) NOT NULL DEFAULT(0), \
-			PRIMARY KEY (`player_id`) \
-			)");
+			`player_id` INTEGER UNSIGNED PRIMARY KEY, \
+			`player_steamid` VARCHAR(32) NOT NULL, \
+			`player_name` VARCHAR(32) NOT NULL, \
+			`player_joindate` TIMESTAMP NULL, \
+			`player_lastseen` TIMESTAMP NULL, \
+			`player_points` INT NOT NULL \
+			);");
 		SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
-	}
-}
-public SQLCallback_CreatePointsTable(Handle:db, Handle:hndl, const String:error[], any:data) 
-{
-	if (hndl == INVALID_HANDLE)
-	{
-		LogError("Error creating points table. %s.", error);
-	}
-	if(g_hDatabase != INVALID_HANDLE) 
-	{
-		Call_StartForward(g_hEventOnDatabaseReady);
-		Call_PushCell(g_hDatabase);
-		Call_Finish();
 	}
 }
 public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[], any:data) 
@@ -137,24 +155,61 @@ public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[
 	{
 		LogError("Error creating player table. %s.", error);
 	} 
-	if(g_hDatabase != INVALID_HANDLE) 
+	else
 	{
+		new String:query[512];
+		Format(query, sizeof(query), "CREATE TRIGGER IF NOT EXISTS [UpdateLastTime] \
+			AFTER UPDATE \
+			ON `merx_players` \
+			FOR EACH ROW \
+			BEGIN \
+			UPDATE `merx_players` SET `player_lastseen` = CURRENT_TIMESTAMP WHERE `player_id` = old.`player_id`; \
+			END");
+		SQL_TQuery(g_hDatabase, SQLCallback_CreateUpdateTrigger, query);
+	}
+}
+public SQLCallback_CreateUpdateTrigger(Handle:db, Handle:hndl, const String:error[], any:data)
+{
+	if(hndl == INVALID_HANDLE)
+	{
+		LogError("Error creating update trigger. %s.", error);
+	}
+	else
+	{
+		
 		Call_StartForward(g_hEventOnDatabaseReady);
 		Call_PushCell(g_hDatabase);
+		Call_PushCell(g_DatabaseType);
 		Call_Finish();
 	}
+}
+public Action:Timer_SavePoints(Handle:timer)
+{
+	for(new i = 1; i <= MaxClients; i++)
+	{
+		if(IsValidPlayer(i))
+		{
+			SaveClientPoints(i);
+		}
+	}
+	CreateTimer(GetConVarFloat(g_hCvarSaveTimer), Timer_SavePoints);
 }
 public ConVar_DefaultPoints(Handle:convar, String:oldValue[], String:newValue[]) 
 {
 	new value = StringToInt(newValue);
 	if(value == 0) 
 	{
-		LogError("Invalid value for pts_default_points");
+		LogError("Invalid value for merx_default_points");
 	} 
 	else 
 	{
 		g_iDefaultPoints = value;
 	}
+}
+public Native_SavePlayerPoints(Handle:plugin, args)
+{
+	new client = GetNativeCell(1);
+	SaveClientPoints(client);
 }
 public Native_GivePlayerPoints(Handle:plugin, args) 
 {
@@ -177,6 +232,16 @@ public Native_GetPlayerPoints(Handle:plugin, args)
 public Native_ResetPlayerPoints(Handle:plugin, args) 
 {
 	SetClientPoints(GetNativeCell(1), g_iDefaultPoints);
+}
+SaveClientPoints(client)
+{
+	PrintToServer("Saving player %N with id %d", client, g_iPlayerID[client]);
+	if(g_iPlayerID[client] != -1)
+	{
+		new String:query[256];
+		Format(query, sizeof(query), "UPDATE `merx_players` SET `player_points` = '%d', `player_name` = '%N' WHERE `player_id` = '%d';", g_iPlayerPoints[client], client, g_iPlayerID[client]);
+		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
+	}
 }
 SetClientPoints(client, points) 
 {

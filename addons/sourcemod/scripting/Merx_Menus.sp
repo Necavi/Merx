@@ -15,11 +15,14 @@ new Handle:g_hKvTeamMenus[MAXPLAYERS + 2][16];
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_showmenu", Command_ShowMenu);
-	LoadMenus();
+}
+public OnMapStart()
+{
+	LoadMenus();	
 }
 public Action:Command_ShowMenu(client, args) 
 {
-	KvRewind(GetClientKv(client))
+	KvRewind(GetClientKv(client));
 	ShowMenu(client);
 	return Plugin_Handled;
 }
@@ -99,6 +102,7 @@ ShowMenu(client)
 	new Handle:kv = GetClientKv(client);
 	new String:title[32];
 	KvGetSectionName(kv, title, sizeof(title));
+	String_ToUpper(title, title, sizeof(title));
 	if(KvGotoFirstSubKey(kv))
 	{
 		new Handle:menu = CreateMenu(MenuHandler_Items);
@@ -160,15 +164,17 @@ bool:IsKeyCategory(Handle:kv)
 LoadMenus() 
 {
 	new max_teams_count = GetTeamCount();
-	new String: team_name[64];
+	new String:team_name[64];
+	new String:game_name[64];
+	GetGameFolderName(game_name, sizeof(game_name));
+	String_ToLower(game_name, game_name, sizeof(game_name));
 	new String:file[PLATFORM_MAX_PATH];
 	new Handle:kv;
 	for (new team_index = 0; (team_index < max_teams_count); team_index++)
 	{
 		GetTeamName(team_index, team_name, sizeof(team_name));
 		String_ToLower(team_name, team_name, sizeof(team_name));
-		BuildPath(Path_SM, file, sizeof(file), "configs/merx_%s_menu.txt", team_name);
-		
+		BuildPath(Path_SM, file, sizeof(file), "configs/merx/%s.%s.menu.txt", game_name, team_name);
 		PrintToServer("Checking for file: %s.", file);
 		kv = CreateKeyValues(team_name);
 		if(FileExists(file))
@@ -222,7 +228,25 @@ stock String_ToLower(const String:input[], String:output[], size)
 	}
 	output[x] = '\0';
 }
-
+stock String_ToUpper(const String:input[], String:output[], size)
+{
+	size--;
+	new x = 0;
+	while (input[x] != '\0' || x < size) 
+	{
+		if (IsCharLower(input[x])) 
+		{
+			output[x] = CharToUpper(input[x]);
+		}
+		else 
+		{
+			output[x] = input[x];
+		}
+		
+		x++;
+	}
+	output[x] = '\0';
+}
 
 
 
