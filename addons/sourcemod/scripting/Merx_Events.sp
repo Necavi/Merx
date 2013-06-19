@@ -7,7 +7,7 @@ public Plugin:myinfo =
 	name = "Merx Events System",
 	author = "necavi",
 	description = "Rewards players with points for certain events",
-	version = "0.1",
+	version = MERX_BUILD,
 	url = "http://necavi.org"
 }
 

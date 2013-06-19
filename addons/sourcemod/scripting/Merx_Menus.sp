@@ -7,14 +7,14 @@ public Plugin:myinfo =
 	name = "Merx Menu System",
 	author = "necavi",
 	description = "Creates menus and allows buying of items.",
-	version = "0.1",
+	version = MERX_BUILD,
 	url = "http://necavi.org/"
 }
 
 new Handle:g_hKvTeamMenus[MAXPLAYERS + 2][16];
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_showmenu", Command_ShowMenu);
+	RegConsoleCmd("sm_merxmenu", Command_ShowMenu);
 }
 public OnMapStart()
 {

@@ -4,6 +4,7 @@
 #include <morecolors>
 
 #define MERX_TAG "{red}[{olive}MERX{red}]{default} "
+#define MERX_BUILD "CUSTOM"
 
 native GivePlayerPoints(client, points);
 native TakePlayerPoints(client, points);
@@ -16,7 +17,6 @@ forward Action:OnPrePlayerPointsChange(client, oldPoints, &newPoints);
 forward Action:OnPlayerPointsChange(client, oldPoints, newPoints);
 forward OnPlayerPointsChanged(client, oldPoints, newPoints);
 forward OnDatabaseReady(Handle:database, DBType:type);
-
 
 enum DBType
 {
