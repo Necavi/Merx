@@ -1,8 +1,37 @@
 "terrorist"
 {
-	"something"
+	"weapons"
 	{
-		"command"	"echo hello"
-		"price"		"5"
+		"Pistols"
+		{
+			"Glock"
+			{
+				"command"	"giveitem weapon_glock"
+				"price"		"5"
+			}
+			"USP"
+			{
+				"command"	"giveitem weapon_usp"
+				"price"		"5"
+			}
+			"P228"
+			{
+				"command"	"giveitem weapon_p228"
+				"price"		"8"
+			}
+		}
+		"Shotguns"
+		{
+			"Pump Shotgun"
+			{
+				"command"	"giveitem weapon_m3"
+				"price"		"20"
+			}
+			"Auto Shotgun"
+			{
+				"command"	"giveitem weapon_xm1014"
+				"price"		"20"
+			}
+		}
 	}
 }

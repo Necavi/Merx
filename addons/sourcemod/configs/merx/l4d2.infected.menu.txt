@@ -38,22 +38,22 @@
 	"Witch"
 	{
 		"command"	"z_spawn witch auto"
-		"price"		"10"
+		"price"		"50"
 	}
 	"Witch Bride"
 	{
 		"command"	"z_spawn witch_bride auto"
-		"price"		"10"
+		"price"		"50"
 	}
 	"Tank"
 	{
 		"command"	"z_spawn tank auto"
-		"price"		"10"
+		"price"		"100"
 	}
 	"Horde"
 	{
 		"command"	"director_force_panic_event"
-		"price"		"10"
+		"price"		"20"
 	}
 	"Uncommon Mob"
 	{

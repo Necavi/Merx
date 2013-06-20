@@ -12,19 +12,20 @@ public Plugin:myinfo =
 }
 
 new Handle:g_hKvTeamMenus[MAXPLAYERS + 2][16];
-public OnPluginStart()
-{
-	RegConsoleCmd("sm_merxmenu", Command_ShowMenu);
-}
 public OnMapStart()
 {
 	LoadMenus();	
 }
-public Action:Command_ShowMenu(client, args) 
+public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
 {
+	CreateNative("ShowPlayerMenu", Native_ShowPlayerMenu);
+	return APLRes_Success;
+}
+public Native_ShowPlayerMenu(Handle:plugin, args)
+{
+	new client = GetNativeCell(1);
 	KvRewind(GetClientKv(client));
 	ShowMenu(client);
-	return Plugin_Handled;
 }
 public MenuHandler_Items(Handle:menu, MenuAction:action, client, item) 
 {
@@ -102,7 +103,6 @@ ShowMenu(client)
 	new Handle:kv = GetClientKv(client);
 	new String:title[32];
 	KvGetSectionName(kv, title, sizeof(title));
-	String_ToUpper(title, title, sizeof(title));
 	if(KvGotoFirstSubKey(kv))
 	{
 		new Handle:menu = CreateMenu(MenuHandler_Items);
@@ -197,8 +197,10 @@ RemoveCommandCheatFlag(const String:command[])
 {
 	new String:buffer[1][32];
 	ExplodeString(command, " ", buffer, sizeof(buffer), sizeof(buffer[]));
+	PrintToServer(buffer[0]);
 	new flags = GetCommandFlags(buffer[0]);
 	SetCommandFlags(buffer[0], flags & ~FCVAR_CHEAT);
+	PrintToServer("Flags before: %d after: %d", flags, GetCommandFlags(buffer[0])); 
 	return flags;
 }	
 
@@ -218,25 +220,6 @@ stock String_ToLower(const String:input[], String:output[], size)
 		if (IsCharUpper(input[x])) 
 		{
 			output[x] = CharToLower(input[x]);
-		}
-		else 
-		{
-			output[x] = input[x];
-		}
-		
-		x++;
-	}
-	output[x] = '\0';
-}
-stock String_ToUpper(const String:input[], String:output[], size)
-{
-	size--;
-	new x = 0;
-	while (input[x] != '\0' || x < size) 
-	{
-		if (IsCharLower(input[x])) 
-		{
-			output[x] = CharToUpper(input[x]);
 		}
 		else 
 		{
