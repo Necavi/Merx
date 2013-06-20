@@ -39,7 +39,6 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 }
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points to chat.");
 	CreateConVar("merx_version", MERX_BUILD, "Either the current build number or CUSTOM for a hand-compile.", FCVAR_PLUGIN | FCVAR_NOTIFY);
 	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give players.", FCVAR_PLUGIN, true, 0.0);
 	g_iDefaultPoints = GetConVarInt(g_hCvarDefaultPoints);
@@ -72,18 +71,6 @@ public OnClientAuthorized(client, const String:auth[])
 		Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
 		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
 	}
-}
-public Action:ConCmd_Points(client, args)
-{
-	if(client > 0)
-	{
-		CReplyToCommand(client, "%sYou have {olive}%d{default} points.", MERX_TAG, g_iPlayerPoints[client]);
-	}
-	else
-	{
-		CReplyToCommand(client, "%sThe server is unable to use points.", MERX_TAG);
-	}
-	return Plugin_Handled;
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) 
 {
@@ -124,7 +111,10 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:c
 		new String:auth[32];
 		GetClientAuthString(client, auth, sizeof(auth));
 		g_iPlayerPoints[client] += g_iDefaultPoints;
-		Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_joindate`) VALUES ('%d', '%s', '%N', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, client, g_iPlayerPoints[client]);
+		new String:szName[MAX_NAME_LENGTH * 2 + 1];
+		GetClientName(client, szName, sizeof(szName));
+		SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
+		Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_joindate`) VALUES ('%d', '%s', '%s', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, szName, g_iPlayerPoints[client]);
 		SQL_TQuery(g_hDatabase, SQLCallback_Void, query, client);
 	}
 }
@@ -256,7 +246,10 @@ SaveClientPoints(client)
 	if(g_iPlayerID[client] != -1)
 	{
 		new String:query[256];
-		Format(query, sizeof(query), "UPDATE `merx_players` SET `player_points` = '%d', `player_name` = '%N' WHERE `player_id` = '%d';", g_iPlayerPoints[client], client, g_iPlayerID[client]);
+		new String:szName[MAX_NAME_LENGTH * 2 + 1];
+		GetClientName(client, szName, sizeof(szName));
+		SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
+		Format(query, sizeof(query), "UPDATE `merx_players` SET `player_points` = '%d', `player_name` = '%s' WHERE `player_id` = '%d';", g_iPlayerPoints[client], szName, g_iPlayerID[client]);
 		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
 	}
 }
