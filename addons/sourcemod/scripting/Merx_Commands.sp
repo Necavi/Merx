@@ -10,12 +10,13 @@ public Plugin:myinfo =
 	version = MERX_BUILD,
 	url = "http://necavi.org/>"
 }
-
+new Handle:g_hCvarCheats = INVALID_HANDLE;
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points.");
 	RegConsoleCmd("sm_merxmenu", ConCmd_MerxMenu, "Displays the points menu.");
 	RegConsoleCmd("giveitem", ConCmd_GiveItem, "Give item to player.", FCVAR_CHEAT);
+	g_hCvarCheats = FindConVar("sv_cheats");
 }
 
 public Action:ConCmd_Points(client, args)
@@ -48,7 +49,7 @@ public Action:ConCmd_GiveItem(client, args)
 	GetCmdArg(1, item, sizeof(item));
 	new String:command[64];
 	GetCmdArg(0, command, sizeof(command));
-	if(GetCommandFlags(command) & FCVAR_CHEAT)
+	if(GetCommandFlags(command) & FCVAR_CHEAT && !GetConVarBool(g_hCvarCheats))
 	{
 		return Plugin_Continue;
 	}
