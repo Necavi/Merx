@@ -69,10 +69,10 @@ public OnClientAuthorized(client, const String:auth[])
 	{
 		new String:query[256];
 		Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
-		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, client);
+		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, GetClientUserId(client));
 	}
 }
-public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:client) 
+public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:userid) 
 {
 	if (hndl == INVALID_HANDLE)
 	{
@@ -80,6 +80,11 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:cli
 	} 
 	else 
 	{
+		new client = GetClientOfUserId(userid);
+		if(client == 0)
+		{
+			return;
+		}
 		if(SQL_GetRowCount(hndl)>0) 
 		{
 			PrintToServer("Retrieving old player %N", client);
@@ -92,11 +97,11 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:cli
 			PrintToServer("Adding new player %N", client);
 			new String:query[128];
 			Format(query, sizeof(query), "SELECT max(`player_id`) FROM `merx_players`;");
-			SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, client);
+			SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, GetClientUserId(client));
 		}
 	}
 }
-public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:client) 
+public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:userid) 
 {
 	if (hndl == INVALID_HANDLE)
 	{
@@ -104,6 +109,11 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:c
 	} 
 	else 
 	{
+		new client = GetClientOfUserId(userid);
+		if(client == 0)
+		{
+			return;
+		}
 		SQL_FetchRow(hndl);
 		g_iPlayerID[client] = SQL_FetchInt(hndl, 0) + 1;
 		PrintToServer("client: %N g_iPlayerID: %d max(`player_id`): %d", client, g_iPlayerID[client], SQL_FetchInt(hndl, 0));
@@ -115,10 +125,10 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:c
 		GetClientName(client, szName, sizeof(szName));
 		SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
 		Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_joindate`) VALUES ('%d', '%s', '%s', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, szName, g_iPlayerPoints[client]);
-		SQL_TQuery(g_hDatabase, SQLCallback_Void, query, client);
+		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
 	}
 }
-public SQLCallback_Void(Handle:db, Handle:hndl, const String:error[], any:client) 
+public SQLCallback_Void(Handle:db, Handle:hndl, const String:error[], any:data) 
 {
 	if(hndl == INVALID_HANDLE)
 	{
