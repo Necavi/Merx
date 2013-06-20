@@ -159,7 +159,7 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 			else if(StrEqual(szType, "team"))
 			{
 				new String:szBuffer[32];
-				GetTeamName(GetEventInt(event, "winner"), szBuffer, sizeof(szBuffer));
+				GetTeamName(GetEventInt(event, szKey), szBuffer, sizeof(szBuffer));
 				Call_PushString(szBuffer);
 			}
 			else if(StrEqual(szType, "string"))
