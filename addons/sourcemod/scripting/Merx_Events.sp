@@ -58,7 +58,6 @@ HookEvents(Handle:events)
 }
 public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	new any:args[16];
 	new Handle:kv = g_hEvents;
 	KvRewind(kv);
 	KvJumpToKey(kv, name);
@@ -90,12 +89,21 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 		}
 		if(team >= 2)
 		{
+			new bool:notify = bool:!KvGetNum(kv, "notifyall");
 			for(new i = 1; i <= MaxClients; i++)
 			{
 				if(IsValidPlayer(i) && GetClientTeam(i) == team)
 				{
 					GivePlayerPoints(i, reward);
+					if(notify)
+					{
+						NotifyPlayers(i, szFormat, kv, event);
+					}
 				}
+			}
+			if(!notify)
+			{
+				NotifyPlayers(0, szFormat, kv, event);
 			}
 		}
 		else
@@ -107,23 +115,36 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 	{
 		new client = GetClientOfUserId(GetEventInt(event, szKey));
 		GivePlayerPoints(client, reward);
+		if(KvGetNum(kv, "notifyall"))
+		{
+			NotifyPlayers(0, szFormat, kv, event);
+		}
+		else
+		{
+			NotifyPlayers(client, szFormat, kv, event);
+		}
 	}
-	if(KvGetNum(kv, "notifyall"))
+}
+NotifyPlayers(client, const String:szFormat[], Handle:kv, Handle:event)
+{
+	new any:args[16];
+	if(client == 0)
 	{
 		Call_StartFunction(INVALID_HANDLE, WrappedPrintToChatAll);
 	}
 	else
 	{
 		Call_StartFunction(INVALID_HANDLE, WrappedPrintToChat);
-		Call_PushCell(GetClientOfUserId(GetEventInt(event, szKey)));
+		Call_PushCell(client);
 	}
 	Call_PushString(szFormat);
 	if(KvGetNum(kv, "translated"))
 	{
-		Call_PushCell(0);
+		Call_PushCell(client);
 	}
 	if(KvJumpToKey(kv, "formatkeys") && KvGotoFirstSubKey(kv, false))
 	{
+		new String:szKey[64];
 		new String:szType[64];
 		new Handle:keys = CreateArray(ByteCountToCells(64));
 		do
@@ -170,9 +191,8 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 			}
 		}
 	}
-	Call_Finish();
+	Call_Finish();	
 }
-
 public WrappedPrintToChatAll(const String:format[], any:...)
 {
 	new String:szBuffer[1024];
