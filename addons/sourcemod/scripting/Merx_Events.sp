@@ -39,7 +39,7 @@ LoadEvents()
 	g_hEvents = CreateKeyValues("events");
 	new String:szGameDir[64];
 	GetGameFolderName(szGameDir, sizeof(szGameDir));
-	BuildPath(Path_SM, path, sizeof(path), "configs/merx/%s.events.cfg", szGameDir);
+	BuildPath(Path_SM, path, sizeof(path), "configs/merx/%s.events.txt", szGameDir);
 	FileToKeyValues(g_hEvents, path);
 	HookEvents(g_hEvents);
 }

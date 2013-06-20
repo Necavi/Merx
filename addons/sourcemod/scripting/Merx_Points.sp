@@ -40,7 +40,7 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 public OnPluginStart()
 {
 	CreateConVar("merx_version", MERX_BUILD, "Either the current build number or CUSTOM for a hand-compile.", FCVAR_PLUGIN | FCVAR_NOTIFY);
-	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give players.", FCVAR_PLUGIN, true, 0.0);
+	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give new players.", FCVAR_PLUGIN, true, 0.0);
 	g_iDefaultPoints = GetConVarInt(g_hCvarDefaultPoints);
 	HookConVarChange(g_hCvarDefaultPoints, ConVar_DefaultPoints);
 	g_hCvarSaveTimer = CreateConVar("merx_save_timer", "300", "Sets the duration between automatic saves.", FCVAR_PLUGIN);
@@ -87,14 +87,12 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:use
 		}
 		if(SQL_GetRowCount(hndl)>0) 
 		{
-			PrintToServer("Retrieving old player %N", client);
 			SQL_FetchRow(hndl);
 			g_iPlayerID[client] = SQL_FetchInt(hndl, 0);
 			g_iPlayerPoints[client] += SQL_FetchInt(hndl, 1);
 		} 
 		else 
 		{
-			PrintToServer("Adding new player %N", client);
 			new String:query[128];
 			Format(query, sizeof(query), "SELECT max(`player_id`) FROM `merx_players`;");
 			SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, GetClientUserId(client));
@@ -116,7 +114,6 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:u
 		}
 		SQL_FetchRow(hndl);
 		g_iPlayerID[client] = SQL_FetchInt(hndl, 0) + 1;
-		PrintToServer("client: %N g_iPlayerID: %d max(`player_id`): %d", client, g_iPlayerID[client], SQL_FetchInt(hndl, 0));
 		new String:query[512];
 		new String:auth[32];
 		GetClientAuthString(client, auth, sizeof(auth));
@@ -252,7 +249,6 @@ public Native_ResetPlayerPoints(Handle:plugin, args)
 }
 SaveClientPoints(client)
 {
-	PrintToServer("Saving player %N with id %d", client, g_iPlayerID[client]);
 	if(g_iPlayerID[client] != -1)
 	{
 		new String:query[256];

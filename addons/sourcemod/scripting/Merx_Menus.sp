@@ -79,7 +79,6 @@ public MenuHandler_Confirm(Handle:menu, MenuAction:action, client, item)
 						new flags = RemoveCommandCheatFlag(command);
 						if(StrEqual(type, "client", false)) 
 						{
-							PrintToServer("Running command: %s for client %N",command, client);
 							FakeClientCommand(client, command);
 						} 
 						else 
@@ -175,7 +174,6 @@ LoadMenus()
 		GetTeamName(team_index, team_name, sizeof(team_name));
 		String_ToLower(team_name, team_name, sizeof(team_name));
 		BuildPath(Path_SM, file, sizeof(file), "configs/merx/%s.%s.menu.txt", game_name, team_name);
-		PrintToServer("Checking for file: %s.", file);
 		kv = CreateKeyValues(team_name);
 		if(FileExists(file))
 		{
@@ -197,10 +195,8 @@ RemoveCommandCheatFlag(const String:command[])
 {
 	new String:buffer[1][32];
 	ExplodeString(command, " ", buffer, sizeof(buffer), sizeof(buffer[]));
-	PrintToServer(buffer[0]);
 	new flags = GetCommandFlags(buffer[0]);
 	SetCommandFlags(buffer[0], flags & ~FCVAR_CHEAT);
-	PrintToServer("Flags before: %d after: %d", flags, GetCommandFlags(buffer[0])); 
 	return flags;
 }	
 

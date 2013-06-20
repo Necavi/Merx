@@ -13,8 +13,8 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points to chat.");
-	RegConsoleCmd("sm_merxmenu", ConCmd_MerxMenu);
+	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points.");
+	RegConsoleCmd("sm_merxmenu", ConCmd_MerxMenu, "Displays the points menu.");
 	RegConsoleCmd("giveitem", ConCmd_GiveItem, "Give item to player.", FCVAR_CHEAT);
 }
 
@@ -32,14 +32,26 @@ public Action:ConCmd_Points(client, args)
 }
 public Action:ConCmd_MerxMenu(client, args) 
 {
-	ShowPlayerMenu(client);
+	if(client > 0)
+	{
+		ShowPlayerMenu(client);
+	}
+	else
+	{
+		CReplyToCommand(client, "%The server is unable to use points.", MERX_TAG);
+	}
 	return Plugin_Handled;
 }
 public Action:ConCmd_GiveItem(client, args) 
 {
 	new String:item[64];
 	GetCmdArg(1, item, sizeof(item));
-	PrintToServer("GiveItem: %s", item);
+	new String:command[64];
+	GetCmdArg(0, command, sizeof(command));
+	if(GetCommandFlags(command) & FCVAR_CHEAT)
+	{
+		return Plugin_Continue;
+	}
 	GivePlayerItem(client, item);
 	return Plugin_Handled;
 }
