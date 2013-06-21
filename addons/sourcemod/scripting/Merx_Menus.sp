@@ -12,20 +12,26 @@ public Plugin:myinfo =
 }
 
 new Handle:g_hKvTeamMenus[MAXPLAYERS + 2][16];
+public OnPluginStart()
+{
+	RegConsoleCmd("sm_merxmenu", ConCmd_MerxMenu, "Displays the points menu.");
+}
 public OnMapStart()
 {
 	LoadMenus();	
 }
-public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
+public Action:ConCmd_MerxMenu(client, args) 
 {
-	CreateNative("ShowPlayerMenu", Native_ShowPlayerMenu);
-	return APLRes_Success;
-}
-public Native_ShowPlayerMenu(Handle:plugin, args)
-{
-	new client = GetNativeCell(1);
-	KvRewind(GetClientKv(client));
-	ShowMenu(client);
+	if(client > 0)
+	{
+		KvRewind(GetClientKv(client));
+		ShowMenu(client);
+	}
+	else
+	{
+		CReplyToCommand(client, "%The server is unable to use points.", MERX_TAG);
+	}
+	return Plugin_Handled;
 }
 public MenuHandler_Items(Handle:menu, MenuAction:action, client, item) 
 {

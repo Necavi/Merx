@@ -39,6 +39,7 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 }
 public OnPluginStart()
 {
+	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points.");
 	CreateConVar("merx_version", MERX_BUILD, "Either the current build number or CUSTOM for a hand-compile.", FCVAR_PLUGIN | FCVAR_NOTIFY);
 	g_hCvarDefaultPoints = CreateConVar("merx_default_points", "10", "Sets the default number of points to give new players.", FCVAR_PLUGIN, true, 0.0);
 	g_iDefaultPoints = GetConVarInt(g_hCvarDefaultPoints);
@@ -71,6 +72,18 @@ public OnClientAuthorized(client, const String:auth[])
 		Format(query, sizeof(query), "SELECT `player_id`, `player_points` FROM `merx_players` WHERE `player_steamid` = '%s';", auth);
 		SQL_TQuery(g_hDatabase, SQLCallback_Connect, query, GetClientUserId(client));
 	}
+}
+public Action:ConCmd_Points(client, args)
+{
+	if(client > 0)
+	{
+		CReplyToCommand(client, "%sYou have {olive}%d{default} points.", MERX_TAG, GetPlayerPoints(client));
+	}
+	else
+	{
+		CReplyToCommand(client, "%sThe server is unable to use points.", MERX_TAG);
+	}
+	return Plugin_Handled;
 }
 public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:userid) 
 {
@@ -152,15 +165,30 @@ public SQLCallback_DBConnect(Handle:db, Handle:hndl, const String:error[], any:d
 			g_DatabaseType = DB_SQLite;
 		}
 		new String:query[512];
-		Format(query, sizeof(query),"CREATE TABLE IF NOT EXISTS `merx_players` ( \
-			`player_id` INTEGER UNSIGNED PRIMARY KEY, \
-			`player_steamid` VARCHAR(32) NOT NULL, \
-			`player_name` VARCHAR(32) NOT NULL, \
-			`player_joindate` TIMESTAMP NULL, \
-			`player_lastseen` TIMESTAMP NULL, \
-			`player_points` INT NOT NULL \
-			);");
-		SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
+		if(g_DatabaseType == DB_SQLite)
+		{
+			Format(query, sizeof(query),"CREATE TABLE IF NOT EXISTS `merx_players` ( \
+				`player_id` INTEGER UNSIGNED PRIMARY KEY, \
+				`player_steamid` VARCHAR(32) NOT NULL, \
+				`player_name` VARCHAR(32) NOT NULL, \
+				`player_joindate` TIMESTAMP NULL, \
+				`player_lastseen` TIMESTAMP NULL, \
+				`player_points` INT NOT NULL \
+				);");
+			SQL_TQuery(g_hDatabase, SQLCallback_CreatePlayerTable, query);
+		}
+		else
+		{
+			Format(query, sizeof(query),"CREATE TABLE IF NOT EXISTS `merx_players` ( \
+				`player_id` INTEGER UNSIGNED PRIMARY KEY, \
+				`player_steamid` VARCHAR(32) NOT NULL, \
+				`player_name` VARCHAR(32) NOT NULL, \
+				`player_joindate` TIMESTAMP NULL, \
+				`player_lastseen` TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP(), \
+				`player_points` INT NOT NULL \
+				);");
+			SQL_TQuery(g_hDatabase, SQLCallback_CreateUpdateTrigger, query);
+		}
 	}
 }
 public SQLCallback_CreatePlayerTable(Handle:db, Handle:hndl, const String:error[], any:data) 
