@@ -19,6 +19,7 @@ public OnPluginStart()
 public OnMapStart()
 {
 	LoadMenus();	
+	//FindConCommand("giveitem");
 }
 public Action:ConCmd_MerxMenu(client, args) 
 {
@@ -122,7 +123,7 @@ ShowMenu(client)
 			{
 				AddMenuItem(menu, name, name);
 			} 
-			else 
+			else if(KvGetNum(kv, "enabled", 1))
 			{
 				Format(display, sizeof(display), "%s (%d)", name, KvGetNum(kv, "price", 100));
 				AddMenuItem(menu, name, display, (GetPlayerPoints(client) >= KvGetNum(kv, "price", 100)) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
@@ -184,6 +185,8 @@ LoadMenus()
 		if(FileExists(file))
 		{
 			FileToKeyValues(kv, file);
+			CleanInvalidCommands(kv);
+			KvRewind(kv);
 			for(new client = 1; client < MaxClients; client++)
 			{
 				if(g_hKvTeamMenus[client][team_index] != INVALID_HANDLE)
@@ -196,6 +199,33 @@ LoadMenus()
 		}
 		CloseHandle(kv);
 	}
+}
+CleanInvalidCommands(Handle:kv)
+{
+	if(KvGotoFirstSubKey(kv))
+	{
+		new String:section[32];
+		new String:command[256];
+		new String:commandname[1][32];
+		do
+		{
+			if(IsKeyCategory(kv)) 
+			{
+				CleanInvalidCommands(kv);
+			} 
+			else 
+			{
+				KvGetSectionName(kv, section, sizeof(section));
+				KvGetString(kv, "command", command, sizeof(command));
+				ExplodeString(command, " ", commandname, sizeof(commandname), sizeof(commandname[]));
+				if(!FindConCommand(commandname[0]))
+				{
+					KvSetNum(kv, "enabled", 0);
+				}
+			}
+		} while (KvGotoNextKey(kv));
+		KvGoBack(kv);
+	} 	
 }
 RemoveCommandCheatFlag(const String:command[])
 {
@@ -232,7 +262,38 @@ stock String_ToLower(const String:input[], String:output[], size)
 	}
 	output[x] = '\0';
 }
-
+bool:FindConCommand(const String:command[])
+{
+	new String:buffer[256];
+	new bool:isCommand;
+	new Handle:iter = GetCommandIterator();
+	if(iter != INVALID_HANDLE)
+	{
+		while(ReadCommandIterator(iter, buffer, sizeof(buffer)))
+		{
+			if(StrEqual(command, buffer, false))
+			{
+				CloseHandle(iter);
+				return true;
+			}
+		}
+		CloseHandle(iter);
+	}
+	iter = FindFirstConCommand(buffer, sizeof(buffer), isCommand);
+	if(iter != INVALID_HANDLE)
+	{
+		do
+		{
+			if(StrEqual(command, buffer, false))
+			{
+				CloseHandle(iter);
+				return true;
+			}
+		} while(FindNextConCommand(iter, buffer, sizeof(buffer), isCommand));
+		CloseHandle(iter);
+	}
+	return false;
+}
 
 
 

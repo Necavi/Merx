@@ -23,8 +23,12 @@ new g_iDefaultPoints;
 
 new DBType:g_DatabaseType;
 
+new ValveGame:g_Game = Game_UNKNOWN;
+
 public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
 {
+	FindGameType();
+	CreateNative("GetGame", Native_GetGame);
 	CreateNative("GivePlayerPoints", Native_GivePlayerPoints);
 	CreateNative("TakePlayerPoints", Native_TakePlayerPoints);
 	CreateNative("SetPlayerPoints", Native_SetPlayerPoints);
@@ -275,6 +279,10 @@ public Native_ResetPlayerPoints(Handle:plugin, args)
 {
 	SetClientPoints(GetNativeCell(1), g_iDefaultPoints);
 }
+public Native_GetGame(Handle:plugin, args)
+{
+	return _:g_Game;
+}
 SaveClientPoints(client)
 {
 	if(g_iPlayerID[client] != -1)
@@ -320,7 +328,43 @@ GetClientPoints(client)
 {
 	return g_iPlayerPoints[client];
 }
-
+FindGameType()
+{
+	new String:folderName[32];
+	GetGameFolderName(folderName, sizeof(folderName));
+	if(StrEqual(folderName, "cstrike"))
+	{
+		g_Game = Game_CSS;
+	}
+	else if(StrEqual(folderName, "csgo"))
+	{
+		g_Game = Game_CSGO;
+	}
+	else if(StrEqual(folderName, "dod"))
+	{
+		g_Game = Game_DOD;
+	}
+	else if(StrEqual(folderName, "left4dead"))
+	{
+		g_Game = Game_L4D;
+	}
+	else if(StrEqual(folderName, "left4dead2"))
+	{
+		g_Game = Game_L4D2;
+	}
+	else if(StrEqual(folderName, "tf"))
+	{
+		g_Game = Game_TF2;
+	}
+	else if(StrEqual(folderName, "nucleardawn"))
+	{
+		g_Game = Game_ND;
+	}
+	else if(StrEqual(folderName, "hl2mp"))
+	{
+		g_Game = Game_HLDM;
+	}
+}
 
 
 

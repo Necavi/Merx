@@ -13,6 +13,7 @@ native GetPlayerPoints(client);
 native ResetPlayerPoints(client);
 native SavePlayerPoints(client);
 native Handle:GetDatabaseHandle();
+native ValveGame:GetGame();
 forward Action:OnPrePlayerPointsChange(client, oldPoints, &newPoints);
 forward Action:OnPlayerPointsChange(client, oldPoints, newPoints);
 forward OnPlayerPointsChanged(client, oldPoints, newPoints);
@@ -22,6 +23,19 @@ enum DBType
 {
 	DB_MySQL,
 	DB_SQLite
+};
+
+enum ValveGame
+{
+	Game_UNKNOWN,
+	Game_CSS,
+	Game_CSGO,
+	Game_TF2,
+	Game_L4D,
+	Game_L4D2,
+	Game_DOD,
+	Game_ND,
+	Game_HLDM,
 };
 
 stock bool:IsValidPlayer(client)

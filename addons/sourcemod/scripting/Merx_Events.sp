@@ -13,10 +13,6 @@ public Plugin:myinfo =
 
 new Handle:g_hEvents = INVALID_HANDLE;
 
-public OnPluginStart()
-{
-	PrintToServer("Loading plugin Merx Events");
-}
 public OnMapStart()
 {
 	new String:path[PLATFORM_MAX_PATH];
