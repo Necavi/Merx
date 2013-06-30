@@ -19,7 +19,6 @@ public OnPluginStart()
 public OnMapStart()
 {
 	LoadMenus();	
-	//FindConCommand("giveitem");
 }
 public Action:ConCmd_MerxMenu(client, args) 
 {

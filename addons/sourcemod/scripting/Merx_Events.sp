@@ -58,7 +58,10 @@ HookEvents(Handle:events)
 		do
 		{
 			KvGetSectionName(events, name, sizeof(name));
-			HookEvent(name, Event_Callback);
+			if(!KvGetNum(events, "custom"))
+			{
+				HookEvent(name, Event_Callback);
+			}
 		} while(KvGotoNextKey(events));
 	}
 }
