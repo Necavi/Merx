@@ -15,11 +15,14 @@ new Handle:g_hEventOnPlayerPointChanged = INVALID_HANDLE;
 new Handle:g_hEventOnDatabaseReady = INVALID_HANDLE;
 new Handle:g_hCvarDefaultPoints = INVALID_HANDLE;
 new Handle:g_hCvarSaveTimer = INVALID_HANDLE;
+new Handle:g_hCvarTag = INVALID_HANDLE;
 new Handle:g_hDatabase = INVALID_HANDLE;
 
 new g_iPlayerPoints[MAXPLAYERS + 2];
 new g_iPlayerID[MAXPLAYERS + 2];
 new g_iDefaultPoints;
+
+new String:g_sMerxTag[64];
 
 new DBType:g_DatabaseType;
 
@@ -35,6 +38,9 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 	CreateNative("GetPlayerPoints", Native_GetPlayerPoints);
 	CreateNative("SavePlayerPoints", Native_SavePlayerPoints);
 	CreateNative("ResetPlayerPoints", Native_ResetPlayerPoints);
+	CreateNative("MerxPrintToChat", Native_MerxPrintToChat);
+	CreateNative("MerxPrintToChatAll", Native_MerxPrintToChatAll);
+	CreateNative("MerxReplyToCommand", Native_MerxReplyToCommand);
 	g_hEventOnPrePlayerPointChange = CreateGlobalForward("OnPrePlayerPointsChange", ET_Hook, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hEventOnPlayerPointChange = CreateGlobalForward("OnPlayerPointsChange", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	g_hEventOnPlayerPointChanged = CreateGlobalForward("OnPlayerPointsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
@@ -50,6 +56,9 @@ public OnPluginStart()
 	HookConVarChange(g_hCvarDefaultPoints, ConVar_DefaultPoints);
 	g_hCvarSaveTimer = CreateConVar("merx_save_timer", "300", "Sets the duration between automatic saves.", FCVAR_PLUGIN);
 	CreateTimer(GetConVarFloat(g_hCvarSaveTimer), Timer_SavePoints);
+	g_hCvarTag = CreateConVar("merx_tag", "{red}[{olive}MERX{red}]{default} ", "Controls the command tag for merx.", FCVAR_PLUGIN);
+	GetConVarString(g_hCvarTag, g_sMerxTag, sizeof(g_sMerxTag));
+	HookConVarChange(g_hCvarTag, ConVar_Tag);
 	if(SQL_CheckConfig("merx"))
 	{
 		SQL_TConnect(SQLCallback_DBConnect, "merx");
@@ -81,11 +90,11 @@ public Action:ConCmd_Points(client, args)
 {
 	if(client > 0)
 	{
-		CReplyToCommand(client, "%sYou have {olive}%d{default} points.", MERX_TAG, GetPlayerPoints(client));
+		MerxReplyToCommand(client, "You have {olive}%d{default} points.", GetPlayerPoints(client));
 	}
 	else
 	{
-		CReplyToCommand(client, "%sThe server is unable to use points.", MERX_TAG);
+		MerxReplyToCommand(client, "The server is unable to use points.");
 	}
 	return Plugin_Handled;
 }
@@ -240,6 +249,10 @@ public Action:Timer_SavePoints(Handle:timer)
 	}
 	CreateTimer(GetConVarFloat(g_hCvarSaveTimer), Timer_SavePoints);
 }
+public ConVar_Tag(Handle:convar, String:oldValue[], String:newValue[]) 
+{
+	Format(g_sMerxTag, sizeof(g_sMerxTag), "%s", newValue);
+}
 public ConVar_DefaultPoints(Handle:convar, String:oldValue[], String:newValue[]) 
 {
 	new value = StringToInt(newValue);
@@ -365,7 +378,24 @@ FindGameType()
 		g_Game = Game_HLDM;
 	}
 }
-
+public Native_MerxPrintToChatAll(Handle:plugin, numParams)
+{
+	new String:szBuffer[1024];
+	FormatNativeString(0, 1, 2, sizeof(szBuffer), _, szBuffer);
+	CPrintToChatAll("%s%s", g_sMerxTag, szBuffer);
+}
+public Native_MerxPrintToChat(Handle:plugin, numParams)
+{
+	new String:szBuffer[1024];
+	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
+	CPrintToChat(GetNativeCell(1), "%s%s", g_sMerxTag, szBuffer);
+}
+public Native_MerxReplyToCommand(Handle:plugin, numParams)
+{
+	new String:szBuffer[1024];
+	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
+	CReplyToCommand(GetNativeCell(1), "%s%s", g_sMerxTag, szBuffer);
+}
 
 
 

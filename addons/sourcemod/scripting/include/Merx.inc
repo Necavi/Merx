@@ -3,7 +3,6 @@
 #include <sourcemod>
 #include <morecolors>
 
-#define MERX_TAG "{red}[{olive}MERX{red}]{default} "
 #define MERX_BUILD "CUSTOM"
 /*
 * 
@@ -23,7 +22,9 @@ native FireCustomEvent(Handle:event);
 * Merx_Points.sp natives
 * 
 */
-
+native MerxPrintToChat(client, const String:fmt[], any:...);
+native MerxPrintToChatAll(const String:fmt[], any:...);
+native MerxReplyToCommand(client, const String:fmt[], any:...);
 native GivePlayerPoints(client, points);
 native TakePlayerPoints(client, points);
 native SetPlayerPoints(client, points);

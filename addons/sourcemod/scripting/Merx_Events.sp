@@ -288,13 +288,13 @@ public WrappedPrintToChatAll(const String:format[], any:...)
 {
 	new String:szBuffer[1024];
 	VFormat(szBuffer, sizeof(szBuffer), format, 2);
-	CPrintToChatAll("%s%s", MERX_TAG, szBuffer);
+	MerxPrintToChatAll("%s", szBuffer);
 }
 public WrappedPrintToChat(client, const String:format[], any:...)
 {
 	new String:szBuffer[1024];
 	VFormat(szBuffer, sizeof(szBuffer), format, 3);
-	CPrintToChat(client, "%s%s", MERX_TAG, szBuffer);
+	MerxPrintToChat(client, "%s", szBuffer);
 }
 public Native_CreateCustomEvent(Handle:plugin, numParams)
 {
