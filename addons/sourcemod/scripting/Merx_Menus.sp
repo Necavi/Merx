@@ -30,7 +30,7 @@ public Action:ConCmd_MerxMenu(client, args)
 	}
 	else
 	{
-		CReplyToCommand(client, "%The server is unable to use points.", MERX_TAG);
+		MerxReplyToCommand(client, "The server is unable to use points.");
 	}
 	return Plugin_Handled;
 }
