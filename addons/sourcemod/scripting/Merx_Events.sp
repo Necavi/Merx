@@ -13,6 +13,16 @@ public Plugin:myinfo =
 
 new Handle:g_hEvents = INVALID_HANDLE;
 
+public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max) 
+{
+	CreateNative("CreateCustomEvent", Native_CreateCustomEvent);
+	CreateNative("SetCustomEventString", Native_SetCustomEventString);
+	CreateNative("SetCustomEventBool", Native_SetCustomEventNum);
+	CreateNative("SetCustomEventInt", Native_SetCustomEventNum);
+	CreateNative("SetCustomEventFloat", Native_SetCustomEventFloat);
+	CreateNative("FireCustomEvent", Native_FireCustomEvent);
+	return APLRes_Success;
+}
 public OnMapStart()
 {
 	new String:path[PLATFORM_MAX_PATH];
@@ -52,7 +62,7 @@ HookEvents(Handle:events)
 		} while(KvGotoNextKey(events));
 	}
 }
-public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
+HandleEvent(Handle:event, const String:name[], bool:isCustom)
 {
 	new Handle:kv = g_hEvents;
 	KvRewind(kv);
@@ -63,9 +73,19 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 	KvGetString(kv, "rewardtarget", szKey, sizeof(szKey), "userid");
 	new String:szNotEquals[64];
 	KvGetString(kv, "rewardifnotequals", szNotEquals, sizeof(szNotEquals));
-	if(GetEventInt(event, szKey) == GetEventInt(event, szNotEquals))
+	if(isCustom)
 	{
-		return;
+		if(KvGetNum(event, szKey) == KvGetNum(event, szNotEquals))
+		{
+			return;
+		}
+	}
+	else
+	{
+		if(GetEventInt(event, szKey) == GetEventInt(event, szNotEquals))
+		{
+			return;
+		}
 	}
 	new reward = KvGetNum(kv, "reward");
 	if(KvGetNum(kv, "rewardteam"))
@@ -73,15 +93,36 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 		new team;
 		if(StrEqual(szKey, "team"))
 		{
-			team = GetEventInt(event, "team");
+			if(isCustom)
+			{
+				team = KvGetNum(event, "team");
+			}
+			else
+			{
+				team = GetEventInt(event, "team");
+			}
 		}
 		else if(StrEqual(szKey, "winner"))
 		{
-			team = GetEventInt(event, "winner");
+			if(isCustom)
+			{
+				team = KvGetNum(event, "winner");
+			}
+			else
+			{
+				team = GetEventInt(event, "winner");
+			}
 		}
 		else
 		{
-			team = GetClientTeam(GetClientOfUserId(GetEventInt(event, szKey)));
+			if(isCustom)
+			{
+				team = GetClientTeam(GetClientOfUserId(KvGetNum(event, szKey)));
+			}
+			else
+			{
+				team = GetClientTeam(GetClientOfUserId(GetEventInt(event, szKey)));
+			}
 		}
 		if(team >= 2)
 		{
@@ -93,13 +134,13 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 					GivePlayerPoints(i, reward);
 					if(notify)
 					{
-						NotifyPlayers(i, szFormat, kv, event);
+						NotifyPlayers(i, szFormat, kv, event, isCustom);
 					}
 				}
 			}
 			if(!notify)
 			{
-				NotifyPlayers(0, szFormat, kv, event);
+				NotifyPlayers(0, szFormat, kv, event, isCustom);
 			}
 		}
 		else
@@ -109,19 +150,31 @@ public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 	else
 	{
-		new client = GetClientOfUserId(GetEventInt(event, szKey));
-		GivePlayerPoints(client, reward);
-		if(KvGetNum(kv, "notifyall"))
+		new client;
+		if(isCustom)
 		{
-			NotifyPlayers(0, szFormat, kv, event);
+			client = GetClientOfUserId(KvGetNum(event, szKey));
 		}
 		else
 		{
-			NotifyPlayers(client, szFormat, kv, event);
+			client = GetClientOfUserId(GetEventInt(event, szKey));
 		}
-	}
+		GivePlayerPoints(client, reward);
+		if(KvGetNum(kv, "notifyall"))
+		{
+			NotifyPlayers(0, szFormat, kv, event, isCustom);
+		}
+		else
+		{
+			NotifyPlayers(client, szFormat, kv, event, isCustom);
+		}
+	}	
 }
-NotifyPlayers(client, const String:szFormat[], Handle:kv, Handle:event)
+public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	HandleEvent(event, name, false);
+}
+NotifyPlayers(client, const String:szFormat[], Handle:kv, Handle:event, bool:isCustom)
 {
 	new any:args[16];
 	if(client == 0)
@@ -153,36 +206,78 @@ NotifyPlayers(client, const String:szFormat[], Handle:kv, Handle:event)
 		{
 			GetArrayString(keys, i, szKey, sizeof(szKey));
 			KvGetString(kv, szKey, szType, sizeof(szType));
-			if(StrEqual(szType, "short") || StrEqual(szType, "byte") || StrEqual(szType, "long"))
+			if(StrEqual(szType, "short") || StrEqual(szType, "byte") || StrEqual(szType, "long") || StrEqual(szType, "int"))
 			{
-				args[i] = GetEventInt(event, szKey);
+				if(isCustom)
+				{
+					args[i] = KvGetNum(event, szKey);
+				}
+				else
+				{
+					args[i] = GetEventInt(event, szKey);
+				}
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "client"))
 			{
-				args[i] = GetClientOfUserId(GetEventInt(event, szKey));
+				if(isCustom)
+				{
+					args[i] = GetClientOfUserId(KvGetNum(event, szKey));
+				}
+				else
+				{
+					args[i] = GetClientOfUserId(GetEventInt(event, szKey));
+				}
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "float"))
 			{
-				args[i] = GetEventFloat(event, szKey);
+				if(isCustom)
+				{
+					args[i] = KvGetFloat(event, szKey);
+				}
+				else
+				{
+					args[i] = GetEventFloat(event, szKey);
+				}
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "bool"))
 			{
-				args[i] = GetEventBool(event, szKey);
+				if(isCustom)
+				{
+					args[i] = KvGetNum(event, szKey);
+				}
+				else
+				{
+					args[i] = GetEventBool(event, szKey);
+				}
 				Call_PushCellRef(args[i]);
 			}
 			else if(StrEqual(szType, "team"))
 			{
 				new String:szBuffer[32];
-				GetTeamName(GetEventInt(event, szKey), szBuffer, sizeof(szBuffer));
+				if(isCustom)
+				{
+					GetTeamName(KvGetNum(event, szKey), szBuffer, sizeof(szBuffer));
+				}
+				else
+				{
+					GetTeamName(GetEventInt(event, szKey), szBuffer, sizeof(szBuffer));
+				}
 				Call_PushString(szBuffer);
 			}
 			else if(StrEqual(szType, "string"))
 			{
 				new String:szBuffer[256];
-				GetEventString(event, szKey, szBuffer, sizeof(szBuffer));
+				if(isCustom)
+				{
+					KvGetString(event, szKey, szBuffer, sizeof(szBuffer));
+				}
+				else
+				{
+					GetEventString(event, szKey, szBuffer, sizeof(szBuffer));
+				}
 				Call_PushString(szBuffer);
 			}
 		}
@@ -201,9 +296,46 @@ public WrappedPrintToChat(client, const String:format[], any:...)
 	VFormat(szBuffer, sizeof(szBuffer), format, 3);
 	CPrintToChat(client, "%s%s", MERX_TAG, szBuffer);
 }
-
-
-
+public Native_CreateCustomEvent(Handle:plugin, numParams)
+{
+	new length;
+	GetNativeStringLength(1, length);
+	new String:name[length];
+	return _:CreateKeyValues(name);
+}
+public Native_SetCustomEventString(Handle:plugin, numParams)
+{
+	new length;
+	GetNativeStringLength(2, length);
+	new String:key[length];
+	GetNativeString(2, key, length);
+	GetNativeStringLength(3, length);
+	new String:value[length];
+	GetNativeString(3, value, length);
+	KvSetString(GetNativeCell(1), key, value);
+}
+public Native_SetCustomEventNum(Handle:plugin, numParams)
+{
+	new length;
+	GetNativeStringLength(2, length);
+	new String:key[length];
+	GetNativeString(2, key, length);
+	KvSetNum(GetNativeCell(1), key, GetNativeCell(3));
+}
+public Native_SetCustomEventFloat(Handle:plugin, numParams)
+{
+	new length;
+	GetNativeStringLength(2, length);
+	new String:key[length];
+	GetNativeString(2, key, length);
+	KvSetFloat(GetNativeCell(1), key, GetNativeCell(3));
+}
+public Native_FireCustomEvent(Handle:plugin, numParams)
+{
+	new String:name[256];
+	KvGetSectionName(GetNativeCell(1), name, sizeof(name));
+	HandleEvent(Handle:GetNativeCell(1), name, true);
+}
 
 
 

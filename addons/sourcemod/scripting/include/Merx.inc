@@ -5,6 +5,24 @@
 
 #define MERX_TAG "{red}[{olive}MERX{red}]{default} "
 #define MERX_BUILD "CUSTOM"
+/*
+* 
+* Merx_Events.sp natives
+* 
+*/
+
+native Handle:CreateCustomEvent(const String:name[]);
+native SetCustomEventString(Handle:event, const String:key[], const String:value[]);
+native SetCustomEventInt(Handle:event, const String:key[], value);
+native SetCustomEventBool(Handle:event, const String:key[], bool:value);
+native SetCustomEventFloat(Handle:event, const String:key[], Float:value);
+native FireCustomEvent(Handle:event);
+
+/*
+* 
+* Merx_Points.sp natives
+* 
+*/
 
 native GivePlayerPoints(client, points);
 native TakePlayerPoints(client, points);
@@ -46,3 +64,7 @@ stock bool:IsValidPlayer(client)
     }
     return false;
 }
+
+
+
+
