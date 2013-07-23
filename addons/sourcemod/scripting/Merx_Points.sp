@@ -13,6 +13,8 @@ new Handle:g_hEventOnPrePlayerPointChange = INVALID_HANDLE;
 new Handle:g_hEventOnPlayerPointChange = INVALID_HANDLE;
 new Handle:g_hEventOnPlayerPointChanged = INVALID_HANDLE;
 new Handle:g_hEventOnDatabaseReady = INVALID_HANDLE;
+new Handle:g_hEventOnPlayerPointsRetrieved = INVALID_HANDLE;
+
 new Handle:g_hCvarDefaultPoints = INVALID_HANDLE;
 new Handle:g_hCvarSaveTimer = INVALID_HANDLE;
 new Handle:g_hCvarTag = INVALID_HANDLE;
@@ -46,14 +48,17 @@ public APLRes:AskPluginLoad2(Handle:plugin, bool:late, String:error[], err_max)
 	CreateNative("MerxPrintToChat", Native_MerxPrintToChat);
 	CreateNative("MerxPrintToChatAll", Native_MerxPrintToChatAll);
 	CreateNative("MerxReplyToCommand", Native_MerxReplyToCommand);
+	CreateNative("GetDatabaseHandle", Native_GetDatabaseHandle);
 	g_hEventOnPrePlayerPointChange = CreateGlobalForward("OnPrePlayerPointsChange", ET_Hook, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hEventOnPlayerPointChange = CreateGlobalForward("OnPlayerPointsChange", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	g_hEventOnPlayerPointChanged = CreateGlobalForward("OnPlayerPointsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hEventOnDatabaseReady = CreateGlobalForward("OnDatabaseReady", ET_Ignore, Param_Cell, Param_Cell);
+	g_hEventOnPlayerPointsRetrieved = CreateGlobalForward("OnPlayerPointsRetrieved", ET_Ignore, Param_Cell, Param_Cell);
 	return APLRes_Success;
 }
 public OnPluginStart()
 {
+	LoadTranslations("merx.core");
 	RegConsoleCmd("sm_points", ConCmd_Points, "Displays your current points.");
 	RegConsoleCmd("sm_toppoints", ConCmd_TopPoints, "Displays the top players by total points.");
 	CreateConVar("merx_version", MERX_BUILD, "Either the current build number or CUSTOM for a hand-compile.", FCVAR_PLUGIN | FCVAR_NOTIFY);
@@ -62,7 +67,7 @@ public OnPluginStart()
 	HookConVarChange(g_hCvarDefaultPoints, ConVar_DefaultPoints);
 	g_hCvarSaveTimer = CreateConVar("merx_save_timer", "300", "Sets the duration between automatic saves.", FCVAR_PLUGIN);
 	CreateTimer(GetConVarFloat(g_hCvarSaveTimer), Timer_SavePoints);
-	g_hCvarTag = CreateConVar("merx_tag", "{red}[{olive}MERX{red}]{default}", "Controls the command tag for merx.", FCVAR_PLUGIN);
+	g_hCvarTag = CreateConVar("merx_tag", "{OG}[{G}MERX{OG}]{N}", "Controls the command tag for merx.", FCVAR_PLUGIN);
 	GetConVarString(g_hCvarTag, g_sMerxTag, sizeof(g_sMerxTag));
 	HookConVarChange(g_hCvarTag, ConVar_Tag);
 	if(SQL_CheckConfig("merx"))
@@ -74,9 +79,32 @@ public OnPluginStart()
 		SQL_TConnect(SQLCallback_DBConnect);
 	}
 }
+public OnPluginEnd()
+{
+	for(new i = 0; i <= MaxClients; i++)
+	{
+		if(IsValidPlayer(i))
+		{
+			new String:query[256];
+			CreatePlayerSaveQuery(i, query, sizeof(query));
+			SQL_FastQuery(g_hDatabase, query);
+		}
+	}
+}
+public OnMapEnd()
+{
+	for(new i = 0; i <= MaxClients; i++)
+	{
+		if(IsValidPlayer(i))
+		{
+			SaveClientPoints(i);
+		}
+	}
+}
 public OnClientConnected(client) 
 {
 	g_iPlayerPoints[client] = 0;
+	g_iPlayerTotalPoints[client] = 0;
 	g_iPlayerID[client] = -1;
 }
 public OnClientDisconnect(client)
@@ -103,11 +131,11 @@ public Action:ConCmd_Points(client, args)
 {
 	if(client > 0)
 	{
-		MerxReplyToCommand(client, "You have {olive}%d{default} points.", GetPlayerPoints(client));
+		MerxReplyToCommand(client, "%T", "current_points", client, GetPlayerPoints(client));
 	}
 	else
 	{
-		MerxReplyToCommand(client, "The server is unable to use points.");
+		MerxReplyToCommand(client, "%T", "unable_to_use_points", client);
 	}
 	return Plugin_Handled;
 }
@@ -121,7 +149,7 @@ public Action:ConCmd_TopPoints(client, args)
 		}
 		else
 		{
-			ReplyToCommand(client, "This server does not have the Merx database  configured to show the top players, please notify them to fix this.");
+			MerxReplyToCommand(client, "%T", "database_missing_total_points_column", client);
 		}
 	}
 	return Plugin_Handled;
@@ -132,7 +160,10 @@ ShowTopPlayers(client)
 	Format(query, sizeof(query), "SELECT `player_name`, `player_total_points` FROM `merx_players` WHERE `player_id` != -1 ORDER BY `player_total_points` DESC LIMIT 10;");
 	SQL_TQuery(g_hDatabase, SQLCallback_ShowTopPlayers, query, GetClientUserId(client));
 }
-
+public Native_GetDatabaseHandle(Handle:plugin, numParams)
+{
+	return _:g_hDatabase;
+}
 public SQLCallback_ShowTopPlayers(Handle:db, Handle:hndl, const String:error[], any:userid)
 {
 	if (hndl == INVALID_HANDLE)
@@ -141,8 +172,9 @@ public SQLCallback_ShowTopPlayers(Handle:db, Handle:hndl, const String:error[], 
 	} 
 	else 
 	{	
+		new client = GetClientOfUserId(userid);
 		new Handle:menu = CreateMenu(MenuHandler_ShowTopPlayers);
-		SetMenuTitle(menu, "Top players");
+		SetMenuTitle(menu, "%T", "menu_title_top_players", client);
 		new String:name[MAX_NAME_LENGTH];
 		new String:item[128];
 		while(SQL_FetchRow(hndl))
@@ -151,7 +183,7 @@ public SQLCallback_ShowTopPlayers(Handle:db, Handle:hndl, const String:error[], 
 			Format(item, sizeof(item), "%s (%d)", name, SQL_FetchInt(hndl, 1));
 			AddMenuItem(menu, "", item);
 		}
-		DisplayMenu(menu, GetClientOfUserId(userid), MENU_TIME_FOREVER);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 	}
 }
 public MenuHandler_ShowTopPlayers(Handle:menu, MenuAction:action, client, item) 
@@ -184,26 +216,27 @@ public SQLCallback_Connect(Handle:db, Handle:hndl, const String:error[], any:use
 			g_iPlayerPoints[client] += SQL_FetchInt(hndl, 1);
 			if(g_bHasTotalPointsColumn)
 			{
-				g_iPlayerTotalPoints[client] = SQL_FetchInt(hndl, 2);
+				g_iPlayerTotalPoints[client] += SQL_FetchInt(hndl, 2);
 			}
 			else
 			{
 				g_iPlayerTotalPoints[client] = g_iPlayerPoints[client];
 			}
+			FirePlayerPointsRetrieved(client);
 		} 
 		else 
 		{
 			new String:query[128];
 			Format(query, sizeof(query), "SELECT max(`player_id`) FROM `merx_players`;");
-			SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, GetClientUserId(client));
+			SQL_TQuery(g_hDatabase, SQLCallback_GetNextID, query, GetClientUserId(client));
 		}
 	}
 }
-public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:userid) 
+public SQLCallback_GetNextID(Handle:db, Handle:hndl, const String:error[], any:userid) 
 {
 	if (hndl == INVALID_HANDLE)
 	{
-		LogError("Error inserting new player. %s.", error);
+		LogError("Error getting next database ID. %s.", error);
 	} 
 	else 
 	{
@@ -223,14 +256,37 @@ public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:u
 		SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
 		if(g_bHasTotalPointsColumn)
 		{
-			Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_total_points`, `player_joindate`) VALUES ('%d', '%s', '%s', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, szName, g_iPlayerPoints[client], g_iPlayerTotalPoints[client]);
+			Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_total_points`, `player_joindate`) VALUES ('%d', '%s', '%s', '%d', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, szName, g_iPlayerPoints[client], g_iPlayerTotalPoints[client]);
 		}
 		else
 		{
 			Format(query, sizeof(query), "INSERT INTO `merx_players` (`player_id`, `player_steamid`, `player_name`, `player_points`, `player_joindate`) VALUES ('%d', '%s', '%s', '%d', CURRENT_TIMESTAMP);", g_iPlayerID[client], auth, szName, g_iPlayerPoints[client]);
 		}
-		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
+		SQL_TQuery(g_hDatabase, SQLCallback_NewPlayer, query, userid);
 	}
+}
+public SQLCallback_NewPlayer(Handle:db, Handle:hndl, const String:error[], any:userid) 
+{
+	if (hndl == INVALID_HANDLE)
+	{
+		LogError("Error inserting new player. %s.", error);
+	} 
+	else 
+	{
+		new client = GetClientOfUserId(userid);
+		if(client == 0)
+		{
+			return;
+		}
+		FirePlayerPointsRetrieved(client);
+	}
+}
+FirePlayerPointsRetrieved(client)
+{
+	Call_StartForward(g_hEventOnPlayerPointsRetrieved);
+	Call_PushCell(client);
+	Call_PushCell(g_iPlayerID[client]);
+	Call_Finish();
 }
 public SQLCallback_Void(Handle:db, Handle:hndl, const String:error[], any:data) 
 {
@@ -470,17 +526,7 @@ SaveClientPoints(client)
 	if(g_iPlayerID[client] != -1)
 	{
 		new String:query[256];
-		new String:szName[MAX_NAME_LENGTH * 2 + 1];
-		GetClientName(client, szName, sizeof(szName));
-		SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
-		if(g_bHasTotalPointsColumn)
-		{
-			Format(query, sizeof(query), "UPDATE `merx_players` SET `player_points` = '%d', `player_total_points` = '%d', `player_name` = '%s' WHERE `player_id` = '%d';", g_iPlayerPoints[client], g_iPlayerTotalPoints[client], szName, g_iPlayerID[client]);
-		}
-		else
-		{
-			Format(query, sizeof(query), "UPDATE `merx_players` SET `player_points` = '%d', `player_name` = '%s' WHERE `player_id` = '%d';", g_iPlayerPoints[client], szName, g_iPlayerID[client]);
-		}
+		CreatePlayerSaveQuery(client, query, sizeof(query));
 		SQL_TQuery(g_hDatabase, SQLCallback_Void, query);
 	}
 }
@@ -512,13 +558,23 @@ SetClientPoints(client, points)
 	Call_PushCell(oldpoints);
 	Call_PushCell(points);
 	Call_Finish();
-	if(oldpoints > points)
-	{
-		g_iPlayerTotalPoints[client] -= (oldpoints - points);
-	}
-	else if(oldpoints < points)
+	if(points > oldpoints)
 	{
 		g_iPlayerTotalPoints[client] += (points - oldpoints);
+	}
+}
+CreatePlayerSaveQuery(client, String:query[], size)
+{
+	new String:szName[MAX_NAME_LENGTH * 2 + 1];
+	GetClientName(client, szName, sizeof(szName));
+	SQL_EscapeString(g_hDatabase, szName, szName, sizeof(szName));
+	if(g_bHasTotalPointsColumn)
+	{
+		Format(query, size, "UPDATE `merx_players` SET `player_points` = '%d', `player_total_points` = '%d', `player_name` = '%s' WHERE `player_id` = '%d';", g_iPlayerPoints[client], g_iPlayerTotalPoints[client], szName, g_iPlayerID[client]);
+	}
+	else
+	{
+		Format(query, size, "UPDATE `merx_players` SET `player_points` = '%d', `player_name` = '%s' WHERE `player_id` = '%d';", g_iPlayerPoints[client], szName, g_iPlayerID[client]);
 	}
 }
 GetClientPoints(client) 
@@ -566,28 +622,19 @@ public Native_MerxPrintToChatAll(Handle:plugin, numParams)
 {
 	new String:szBuffer[1024];
 	FormatNativeString(0, 1, 2, sizeof(szBuffer), _, szBuffer);
-	CPrintToChatAll("%s %s", g_sMerxTag, szBuffer);
+	Client_PrintToChatAll(true, " %s %s", g_sMerxTag, szBuffer);
 }
 public Native_MerxPrintToChat(Handle:plugin, numParams)
 {
 	new String:szBuffer[1024];
 	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
-	CPrintToChat(GetNativeCell(1), "%s %s", g_sMerxTag, szBuffer);
+	Client_PrintToChat(GetNativeCell(1), true, " %s %s", g_sMerxTag, szBuffer);
 }
 public Native_MerxReplyToCommand(Handle:plugin, numParams)
 {
 	new String:szBuffer[1024];
 	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
-	if(GetCmdReplySource() == SM_REPLY_TO_CHAT)
-	{
-		CPrintToChat(GetNativeCell(1), "%s %s", g_sMerxTag, szBuffer);
-	}
-	else
-	{
-		Format(szBuffer, sizeof(szBuffer), "%s %s", g_sMerxTag, szBuffer);
-		CRemoveTags(szBuffer, sizeof(szBuffer));
-		PrintToConsole(GetNativeCell(1), szBuffer);
-	}
+	Client_Reply(GetNativeCell(1), " %s %s", g_sMerxTag, szBuffer);
 }
 
 

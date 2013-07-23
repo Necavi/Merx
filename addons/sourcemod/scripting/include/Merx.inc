@@ -1,7 +1,7 @@
 #pragma semicolon 1
 
 #include <sourcemod>
-#include <morecolors>
+#include <smlib>
 
 #define MERX_BUILD "CUSTOM"
 /*
@@ -19,9 +19,18 @@ native FireCustomEvent(Handle:event);
 
 /*
 * 
+* Merx_Menus.sp natives
+* 
+*/
+
+forward Action:OnMerxItemDrawn(client, String:item[], const String:command[], const String:commandArgs[]);
+
+/*
+* 
 * Merx_Points.sp natives
 * 
 */
+
 native MerxPrintToChat(client, const String:fmt[], any:...);
 native MerxPrintToChatAll(const String:fmt[], any:...);
 native MerxReplyToCommand(client, const String:fmt[], any:...);
@@ -39,6 +48,7 @@ forward Action:OnPrePlayerPointsChange(client, oldPoints, &newPoints);
 forward Action:OnPlayerPointsChange(client, oldPoints, newPoints);
 forward OnPlayerPointsChanged(client, oldPoints, newPoints);
 forward OnDatabaseReady(Handle:database, DBType:type);
+forward OnPlayerPointsRetrieved(client, playerID);
 
 enum DBType
 {

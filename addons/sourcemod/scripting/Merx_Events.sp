@@ -189,10 +189,23 @@ NotifyPlayers(client, const String:szFormat[], Handle:kv, Handle:event, bool:isC
 		Call_StartFunction(INVALID_HANDLE, WrappedPrintToChat);
 		Call_PushCell(client);
 	}
-	Call_PushString(szFormat);
 	if(KvGetNum(kv, "translated"))
 	{
-		Call_PushCell(client);
+		if(client == 0)
+		{
+			Call_PushString("%t");
+			Call_PushString(szFormat);
+		}
+		else
+		{
+			Call_PushString("%T");
+			Call_PushString(szFormat);
+			Call_PushCell(client);
+		}
+	}
+	else
+	{
+		Call_PushString(szFormat);
 	}
 	if(KvJumpToKey(kv, "formatkeys") && KvGotoFirstSubKey(kv, false))
 	{

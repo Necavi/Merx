@@ -1,0 +1,43 @@
+"Phrases"
+{
+	"current_points"
+	{
+		"#format"	"{1:d}"
+		"en"		"You have {O}{1}{N} points."
+	}
+	"unable_to_use_points"
+	{
+		"en"		"You are unable to use points."
+	}
+	"database_missing_total_points_column"
+	{
+		"en"		"This server does not have the Merx database configured to show the top players, please notify them to fix this."
+	}
+	"menu_title_top_players"
+	{
+		"en"		"Top players"
+	}
+	"menu_title_shop_main"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} Menu\nYou have {2} points"
+	}
+	"menu_title_no_items_found"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1}\n\nNo items available"
+	}
+	"menu_title_confirm_buy"
+	{
+		"#format"	"{1:d},{2:s},{3:d},{4:s}"
+		"en"		"Confirmation Menu\nYou have {1} points\nAre you sure you would like to buy:\n {2} for {3} {4}?"
+	}
+	"yes"
+	{
+		"en"		"Yes"
+	}
+	"no"
+	{
+		"en"		"No"
+	}
+}
