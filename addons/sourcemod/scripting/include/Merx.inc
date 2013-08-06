@@ -23,7 +23,8 @@ native FireCustomEvent(Handle:event);
 * 
 */
 
-forward Action:OnMerxItemDrawn(client, String:item[], const String:command[], const String:commandArgs[]);
+native RefundLastPurchase(client);
+forward Action:OnMerxItemDrawn(client, String:item[], itemsize, const String:command[], const String:commandArgs[]);
 
 /*
 * 

@@ -19,6 +19,13 @@ new Handle:g_hEventMenuItemDrawn = INVALID_HANDLE;
 
 new bool:g_bConfirmationMenu = true;
 
+new g_iLastPurchasePrice[MAXPLAYERS + 2];
+
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	CreateNative("RefundLastPurchase", Native_RefundLastPurchase);
+	return APLRes_Success;
+}
 public OnPluginStart()
 {
 	LoadTranslations("merx.core");
@@ -26,11 +33,20 @@ public OnPluginStart()
 	g_hCvarConfirmationMenu = CreateConVar("merx_confirmationmenu", "1", "Enables or disables the confirmation menu when buying items.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	HookConVarChange(g_hCvarConfirmationMenu, Convar_ConfirmationMenu);
 	g_bConfirmationMenu = GetConVarBool(g_hCvarConfirmationMenu);
-	g_hEventMenuItemDrawn = CreateGlobalForward("OnMerxItemDrawn", ET_Hook, Param_Cell, Param_String, Param_String, Param_String);
+	g_hEventMenuItemDrawn = CreateGlobalForward("OnMerxItemDrawn", ET_Hook, Param_Cell, Param_String, Param_Cell, Param_String, Param_String);
+}
+public OnClientConnected(client)
+{
+	g_iLastPurchasePrice[client] = 0;
 }
 public OnMapStart()
 {
 	LoadMenus();	
+}
+public Native_RefundLastPurchase(Handle:plugin, numParams)
+{
+	new client = GetNativeCell(1);
+	GivePlayerPoints(client, g_iLastPurchasePrice[client]);
 }
 public Convar_ConfirmationMenu(Handle:convar, const String:oldValue[], const String:newValue[])
 {
@@ -98,9 +114,10 @@ ShowMenu(client)
 	new Handle:kv = GetClientKv(client);
 	new String:title[32];
 	KvGetSectionName(kv, title, sizeof(title));
+	new Handle:menu;
 	if(KvGotoFirstSubKey(kv))
 	{
-		new Handle:menu = CreateMenu(MenuHandler_Items);
+		menu = CreateMenu(MenuHandler_Items);
 		SetMenuExitBackButton(menu, true);
 		SetMenuTitle(menu, "%T", "menu_title_shop_main", client, title, GetPlayerPoints(client));
 		new String:name[32];
@@ -121,7 +138,8 @@ ShowMenu(client)
 				new Action:result;
 				Call_StartForward(g_hEventMenuItemDrawn);
 				Call_PushCell(client);
-				Call_PushStringEx(display, sizeof(display), SM_PARAM_STRING_UTF8, SM_PARAM_COPYBACK);
+				Call_PushStringEx(display, sizeof(display), SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+				Call_PushCell(sizeof(display));
 				KvGetString(kv, "command", commandArgs, sizeof(commandArgs));
 				ExplodeString(commandArgs, " ", command, sizeof(command), sizeof(command[]));
 				Call_PushString(command[0]);
@@ -145,7 +163,7 @@ ShowMenu(client)
 	{
 		if(g_bConfirmationMenu)
 		{
-			new Handle:menu = CreateMenu(MenuHandler_Confirm);
+			menu = CreateMenu(MenuHandler_Confirm);
 			SetMenuTitle(menu, "%T", "menu_title_confirm_buy", client, GetPlayerPoints(client), title, KvGetNum(kv, "price", 100), (KvGetNum(kv, "price", 100) != 1) ? "points" : "point");
 			new String:item[16];
 			Format(item, sizeof(item), "%T", "yes", client);
@@ -170,6 +188,7 @@ PurchaseItem(client)
 		new price = KvGetNum(kv, "price", 100);
 		if(price <= GetPlayerPoints(client))
 		{
+			g_iLastPurchasePrice[client] = price;
 			new String:type[16];
 			new String:command[256];
 			new String:szBuffer[16];
