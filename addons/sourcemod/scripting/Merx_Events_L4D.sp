@@ -12,7 +12,10 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	HookEvent("player_death", Event_PlayerDeath);
+	if(GetGame() == Game_L4D || GetGame() == Game_L4D2)
+	{
+		HookEvent("player_death", Event_PlayerDeath);
+	}
 }
 public Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
