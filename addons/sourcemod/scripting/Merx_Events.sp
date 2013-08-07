@@ -70,12 +70,6 @@ HandleEvent(Handle:event, const String:name[], bool:isCustom)
 	new Handle:kv = g_hEvents;
 	KvRewind(kv);
 	KvJumpToKey(kv, name);
-	new String:command[256];
-	KvGetString(kv, "command", command, sizeof(command));
-	if(!StrEqual(command, ""))
-	{
-		ServerCommand(command);
-	}
 	new String:szFormat[1024];
 	KvGetString(kv, "format", szFormat, sizeof(szFormat));
 	new String:szKey[64];
@@ -94,6 +88,32 @@ HandleEvent(Handle:event, const String:name[], bool:isCustom)
 		if(GetEventInt(event, szKey) == GetEventInt(event, szNotEquals))
 		{
 			return;
+		}
+	}
+	new String:szNotZero[64];
+	if(isCustom)
+	{
+		KvGetString(event, "keynotzero", szNotZero, sizeof(szNotZero));
+	}
+	else
+	{
+		GetEventString(event, "keynotzero", szNotZero, sizeof(szNotZero));
+	}
+	if(!StrEqual(szNotZero, ""))
+	{
+		if(isCustom)
+		{
+			if(KvGetNum(event, szNotZero) == 0)
+			{
+				return;
+			}
+		}
+		else
+		{
+			if(GetEventInt(event, szNotZero) == 0)
+			{
+				return;
+			}
 		}
 	}
 	new reward = KvGetNum(kv, "reward");
@@ -177,6 +197,12 @@ HandleEvent(Handle:event, const String:name[], bool:isCustom)
 		{
 			NotifyPlayers(client, szFormat, kv, event, isCustom);
 		}
+	}
+	new String:command[256];
+	KvGetString(kv, "command", command, sizeof(command));
+	if(!StrEqual(command, ""))
+	{
+		ServerCommand(command);
 	}
 }
 public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
