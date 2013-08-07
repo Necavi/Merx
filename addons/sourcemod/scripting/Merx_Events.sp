@@ -70,6 +70,12 @@ HandleEvent(Handle:event, const String:name[], bool:isCustom)
 	new Handle:kv = g_hEvents;
 	KvRewind(kv);
 	KvJumpToKey(kv, name);
+	new String:command[256];
+	KvGetString(kv, "command", command, sizeof(command));
+	if(!StrEqual(command, ""))
+	{
+		ServerCommand(command);
+	}
 	new String:szFormat[1024];
 	KvGetString(kv, "format", szFormat, sizeof(szFormat));
 	new String:szKey[64];
@@ -171,7 +177,7 @@ HandleEvent(Handle:event, const String:name[], bool:isCustom)
 		{
 			NotifyPlayers(client, szFormat, kv, event, isCustom);
 		}
-	}	
+	}
 }
 public Event_Callback(Handle:event, const String:name[], bool:dontBroadcast)
 {
